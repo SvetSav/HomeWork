@@ -2,8 +2,8 @@
 Модуль обработки банковских операций.
 """
 
-from typing import List, Dict, Any, Literal
 from datetime import datetime
+from typing import List, Dict, Any
 
 
 def filter_by_state(operations: List[Dict[str, Any]],
