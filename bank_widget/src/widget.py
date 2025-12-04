@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def mask_account_card(data: str) -> str:
     """Маскирует номера карт и счетов."""
     # Разделяем строку на название и номер
@@ -17,25 +18,33 @@ def mask_account_card(data: str) -> str:
         masked_number = f"{number[:4]} {number[4:6]}** **** {number[-4:]}"
         return f"{name} {masked_number}"
 
+
 def get_date(date_string: str) -> str:
-    """Преобразует дату из формата 2024-03-11T02:26:18.671407 в формат ДД.ММ.ГГГГ
+    """
+    Преобразует дату из формата 2024-03-11T02:26:18.671407 в формат ДД.ММ.ГГГГ.
+
     Аргументы:
         date_string: строка с датой в формате "2024-03-11T02:26:18.671407"
+
     Возвращает:
-        строку с датой в формате "ДД.ММ.ГГГГ" """
+        строку с датой в формате "ДД.ММ.ГГГГ"
+    """
     # Систематизация строки в объект datetime
     dt = datetime.fromisoformat(date_string)
 
     # Форматируем в нужный формат
     return dt.strftime("%d.%m.%Y")
 
+
 def mask_card_number(card_number: str) -> str:
-    """Маскирует номер карты"""
+    """Маскирует номер карты."""
     return f"{card_number[:4]} {card_number[4:6]}** **** {card_number[-4:]}"
 
+
 def mask_account_number(account_number: str) -> str:
-    """Маскирует номер счета"""
+    """Маскирует номер счета."""
     return f"**{account_number[-4:]}"
+
 
 # Примеры использования функций
 if __name__ == "__main__":
@@ -51,7 +60,7 @@ if __name__ == "__main__":
         "Visa Classic 6831982476737658",
         "Visa Platinum 8990922113665229",
         "Visa Gold 5999414228426353",
-        "Счет 73654108430135874305"
+        "Счет 73654108430135874305",
     ]
 
     print("Тестирование mask_account_card:")
@@ -68,7 +77,7 @@ if __name__ == "__main__":
     test_dates = [
         "2024-03-11T02:26:18.671407",
         "2023-12-31T23:59:59.999999",
-        "2024-01-01T00:00:00.000000"
+        "2024-01-01T00:00:00.000000",
     ]
 
     print("Тестирование get_date:")
