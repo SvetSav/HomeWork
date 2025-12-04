@@ -29,12 +29,12 @@ def get_date(date_string: str) -> str:
     Возвращает:
         строку с датой в формате "ДД.ММ.ГГГГ"
     """
-    # Систематизация строки в объект datetime
-    dt = datetime.fromisoformat(date_string)
-
-    # Форматируем в нужный формат
-    return dt.strftime("%d.%m.%Y")
-
+    try:
+        dt = datetime.fromisoformat(date_string)
+        return dt.strftime("%d.%m.%Y")
+    except (ValueError, TypeError):
+        # Возвращаем исходную строку в случае ошибки
+        return date_string
 
 def mask_card_number(card_number: str) -> str:
     """Маскирует номер карты."""

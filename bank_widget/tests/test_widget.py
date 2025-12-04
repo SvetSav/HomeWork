@@ -45,7 +45,7 @@ def test_get_date():
     assert get_date("not-a-date") == "not-a-date"
     assert get_date("") == ""
 
-    print("Все тесты get_date прошли успечно!")
+    print("Все тесты get_date прошли успешно!")
 
 
 if __name__ == "__main__":
