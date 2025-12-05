@@ -3,8 +3,8 @@
 Содержит функции фильтрации и сортировки операций.
 """
 
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
 
 
 def filter_by_state(operations: List[Dict[str, Any]],
@@ -61,15 +61,15 @@ def sort_by_date(operations: List[Dict[str, Any]],
 
     # Фильтруем операции с датой
     operations_with_date = [
-        op for op in operations
-        if 'date' in op and op['date']
+        operation for operation in operations
+        if 'date' in operation and operation['date']
     ]
 
     # Сортируем по дате
     try:
         return sorted(
             operations_with_date,
-            key=lambda x: datetime.fromisoformat(x['date']),
+            key=lambda operation: datetime.fromisoformat(operation['date']),
             reverse=reverse
         )
     except (ValueError, TypeError):
@@ -93,14 +93,14 @@ if __name__ == "__main__":
     # Тест 1: Фильтрация со статусом по умолчанию (EXECUTED)
     executed_operations = filter_by_state(sample_operations)
     print(f"1. EXECUTED операции ({len(executed_operations)}):")
-    for op in executed_operations:
-        print(f"   ID: {op['id']}, Дата: {op['date'][:10]}")
+    for operation in executed_operations:
+        print(f"   ID: {operation['id']}, Дата: {operation['date'][:10]}")
 
     # Тест 2: Фильтрация со статусом CANCELED
     canceled_operations = filter_by_state(sample_operations, 'CANCELED')
     print(f"\n2. CANCELED операции ({len(canceled_operations)}):")
-    for op in canceled_operations:
-        print(f"   ID: {op['id']}, Дата: {op['date'][:10]}")
+    for operation in canceled_operations:
+        print(f"   ID: {operation['id']}, Дата: {operation['date'][:10]}")
 
     print("\nТестирование функции sort_by_date:")
     print("=" * 50)
@@ -108,8 +108,8 @@ if __name__ == "__main__":
     # Тест 3: Сортировка по убыванию (по умолчанию)
     sorted_desc = sort_by_date(sample_operations, reverse=True)
     print("3. Сортировка по убыванию (новые сверху):")
-    for i, op in enumerate(sorted_desc, 1):
-        state_icon = "✓" if op['state'] == 'EXECUTED' else "✗"
-        print(f"   {i}. {state_icon} ID: {op['id']}, Дата: {op['date'][:10]}")
+    for index, operation in enumerate(sorted_desc, 1):
+        state_icon = "✓" if operation['state'] == 'EXECUTED' else "✗"
+        print(f"   {index}. {state_icon} ID: {operation['id']}, Дата: {operation['date'][:10]}")
 
     print("\n Функции работают корректно!")

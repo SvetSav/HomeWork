@@ -8,10 +8,11 @@ import os
 # Добавляем src в путь для импорта
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+
 from widget import mask_account_card, get_date
 
 
-def test_mask_account_card():
+def test_mask_account_card() -> None:
     """Тест маскировки карт и счетов."""
     # Тесты для карт
     assert mask_account_card("Visa Platinum 7000792289606361") == "Visa Platinum 7000 79** **** 6361"
@@ -35,7 +36,7 @@ def test_mask_account_card():
     print("Все тесты mask_account_card прошли успешно!")
 
 
-def test_get_date():
+def test_get_date() -> None:
     """Тест форматирования даты."""
     assert get_date("2024-03-11T02:26:18.671407") == "11.03.2024"
     assert get_date("2023-12-31T23:59:59.999999") == "31.12.2023"

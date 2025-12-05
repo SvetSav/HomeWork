@@ -4,6 +4,9 @@ from datetime import datetime
 def mask_account_card(data: str) -> str:
     """Маскирует номера карт и счетов."""
     # Разделяем строку на название и номер
+    if not data:
+        return ""
+
     parts = data.rsplit(' ', 1)
     if len(parts) != 2:
         return data
@@ -30,11 +33,12 @@ def get_date(date_string: str) -> str:
         строку с датой в формате "ДД.ММ.ГГГГ"
     """
     try:
-        dt = datetime.fromisoformat(date_string)
-        return dt.strftime("%d.%m.%Y")
+        date_object = datetime.fromisoformat(date_string)
+        return date_object.strftime("%d.%m.%Y")
     except (ValueError, TypeError):
         # Возвращаем исходную строку в случае ошибки
         return date_string
+
 
 def mask_card_number(card_number: str) -> str:
     """Маскирует номер карты."""
@@ -65,9 +69,9 @@ if __name__ == "__main__":
 
     print("Тестирование mask_account_card:")
     print("-" * 50)
-    for test in test_cases:
-        result = mask_account_card(test)
-        print(f"Вход:  {test}")
+    for test_data in test_cases:
+        result = mask_account_card(test_data)
+        print(f"Вход:  {test_data}")
         print(f"Выход: {result}")
         print()
 
@@ -82,8 +86,8 @@ if __name__ == "__main__":
 
     print("Тестирование get_date:")
     print("-" * 50)
-    for test_date in test_dates:
-        result = get_date(test_date)
-        print(f"Вход:  {test_date}")
-        print(f"Выход: {result}")
+    for date_input in test_dates:
+        formatted_date = get_date(date_input)
+        print(f"Вход:  {date_input}")
+        print(f"Выход: {formatted_date}")
         print()
