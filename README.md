@@ -54,8 +54,20 @@ date_str = "2024-03-11T02:26:18.671407"
 python -m pytest tests/ -v
 
 # Или конкретный тест (например):
-python tests/test_widget.py
-python tests/test_processing.py
+### Тесты для маскировки данных
+python -m pytest tests/test_masks.py -v
+
+### Тесты для обработки операций
+python -m pytest tests/test_processing.py -v
+
+### Тесты для основного виджета
+python -m pytest tests/test_widget.py -v
+
+# Особенности тестирования
+* Параметризация тестов - множественные тест-кейсы в одном тесте
+* Фикстуры - предопределённые тестовые данные в conftest.py
+* Покрытие кода > 80% - автоматическая проверка покрытия
+* Отчёт в HTML формате - визуализация результатов тестирования
 
 # Документация:
 

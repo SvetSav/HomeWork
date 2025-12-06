@@ -7,17 +7,18 @@ def mask_account_card(data: str) -> str:
     if not data:
         return ""
 
+    # Разделяем строку на название и номер
     parts = data.rsplit(' ', 1)
     if len(parts) != 2:
-        return data
+        return data  # Если нет пробела или формат неверный, возвращаем исходные данные
 
     name, number = parts[0], parts[1]
 
     # Проверяем, является ли это счетом
     if name.lower() == "счет":
         return f"{name} **{number[-4:]}"
+    # Маскировка для карты (формат XXXX XX** **** XXXX)
     else:
-        # Маскировка для карты (формат XXXX XX** **** XXXX)
         masked_number = f"{number[:4]} {number[4:6]}** **** {number[-4:]}"
         return f"{name} {masked_number}"
 
