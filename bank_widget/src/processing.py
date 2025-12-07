@@ -4,7 +4,9 @@
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
+from typing import Dict
+from typing import List
 
 
 def filter_by_state(operations: List[Dict[str, Any]],
@@ -20,7 +22,7 @@ def filter_by_state(operations: List[Dict[str, Any]],
         Отфильтрованный список операций
 
     Examples:
-        >>> operations = [
+        >>> ops = [
         ...     {'id': 1, 'state': 'EXECUTED'},
         ...     {'id': 2, 'state': 'CANCELED'}
         ... ]
@@ -49,7 +51,7 @@ def sort_by_date(operations: List[Dict[str, Any]],
         Отсортированный список операций
 
     Examples:
-        >>> operations = [
+        >>> ops = [
         ...     {'id': 1, 'date': '2023-01-01'},
         ...     {'id': 2, 'date': '2023-01-02'}
         ... ]
