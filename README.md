@@ -48,6 +48,44 @@ account = "Счет 73654108430135874305"
 date_str = "2024-03-11T02:26:18.671407"
 #### Результат: 11.03.2024
 
+# Модуль generators
+
+Модуль содержит генераторы для работы с банковскими транзакциями.
+
+## Функции
+
+### `filter_by_currency(transactions, currency)`
+Фильтрует транзакции по заданной валюте.
+
+from src.generators import filter_by_currency
+
+usd_transactions = filter_by_currency(transactions, "USD")
+for transaction in usd_transactions:
+    print(transaction["id"], transaction["operationAmount"]["amount"])
+
+### `transaction_descriptions(transactions)`
+Возвращает описания транзакций.
+
+from src.generators import transaction_descriptions
+
+descriptions = transaction_descriptions(transactions)
+for description in descriptions:
+    print(description)
+
+### `card_number_generator(start, end)`
+Генерирует номера банковских карт в заданном диапазоне.
+
+from src.generators import card_number_generator
+
+for card_number in card_number_generator(1, 5):
+    print(card_number)
+#### Вывод:
+#### 0000 0000 0000 0001
+#### 0000 0000 0000 0002
+#### 0000 0000 0000 0003
+#### 0000 0000 0000 0004
+#### 0000 0000 0000 0005
+
 # Тестирование
 
 ## Запустите все тесты!
@@ -62,6 +100,15 @@ python -m pytest tests/test_processing.py -v
 
 ### Тесты для основного виджета
 python -m pytest tests/test_widget.py -v
+
+### Тесты для generators
+pytest tests/test_generators.py -v
+
+# Проверьте покрытие
+pytest --cov=src tests/ --cov-report=html
+
+Откройте отчет о покрытии
+start htmlcov/index.html
 
 # Особенности тестирования
 * Параметризация тестов - множественные тест-кейсы в одном тесте
