@@ -3,7 +3,10 @@
 Содержит функции для фильтрации и итерации по транзакциям.
 """
 
-from typing import Iterator, List, Dict, Any
+from typing import Any
+from typing import Dict
+from typing import Iterator
+from typing import List
 
 
 def filter_by_currency(transactions: List[Dict[str, Any]], currency: str) -> Iterator[Dict[str, Any]]:

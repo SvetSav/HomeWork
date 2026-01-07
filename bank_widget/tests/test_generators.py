@@ -2,9 +2,14 @@
 Тесты для модуля generators.
 """
 
+from typing import Any
+from typing import Dict
+from typing import List
+
 import pytest
-from typing import List, Dict, Any
-from src.generators import filter_by_currency, transaction_descriptions, card_number_generator
+from src.generators import card_number_generator
+from src.generators import filter_by_currency
+from src.generators import transaction_descriptions
 
 
 # Фикстуры для тестовых данных

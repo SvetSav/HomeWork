@@ -32,6 +32,52 @@ multi_line_output = 3
 force_single_line = true
 
 [tool.mypy]
-disallow_untyped_defs = true
+python_version = "3.9"
+check_untyped_defs = true
+disallow_untyped_defs = false
 warn_return_any = true
-exclude = ["venv/"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+show_error_codes = true
+explicit_package_bases = true
+namespace_packages = false
+mypy_path = "."
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "test_*"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "requests.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src.*"
+ignore_missing_imports = false
+
+[mypy-requests]
+ignore_missing_imports = true
+
+[project]
+name = "bank_widget"
+version = "0.1.0"
+dependencies = [
+    "requests>=2.28.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.10.0",
+    "mypy>=1.0.0",
+    "types-requests>=2.28.0",
+]

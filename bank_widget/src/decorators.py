@@ -5,7 +5,9 @@
 
 import datetime
 import functools
-from typing import Any, Callable, Optional
+from typing import Any
+from typing import Callable
+from typing import Optional
 
 
 def log(filename: Optional[str] = None) -> Callable:
