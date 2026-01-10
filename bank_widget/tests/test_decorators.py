@@ -8,7 +8,7 @@ from typing import Any
 from typing import Callable
 
 import pytest
-from src.decorators import log
+from src.decorators import log  # noqa: E402
 
 
 class TestLogDecorator:
@@ -127,7 +127,7 @@ class TestLogDecorator:
         assert "get_pi ok" in captured.out
 
     def test_log_preserves_function_metadata(self) -> None:
-        """Тест что декоратор сохраняет метаданные функции."""
+        """Тест, что декоратор сохраняет метаданные функции."""
         @log()
         def example_func(x: int, y: int) -> int:
             """Пример функции для теста."""

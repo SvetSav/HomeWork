@@ -7,9 +7,9 @@ from typing import Dict
 from typing import List
 
 import pytest
-from src.generators import card_number_generator
-from src.generators import filter_by_currency
-from src.generators import transaction_descriptions
+from src.generators import card_number_generator  # noqa: E402
+from src.generators import filter_by_currency  # noqa: E402
+from src.generators import transaction_descriptions  # noqa: E402
 
 
 # Фикстуры для тестовых данных

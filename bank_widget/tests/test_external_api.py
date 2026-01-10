@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 # Прямой импорт
-from external_api import get_exchange_rate, convert_amount_to_rub
+from external_api import get_exchange_rate, convert_amount_to_rub  # noqa: E402
 
 
 def test_get_exchange_rate_rub() -> None:
