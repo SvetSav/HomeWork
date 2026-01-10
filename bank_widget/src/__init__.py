@@ -3,6 +3,10 @@
 """
 
 from .decorators import log
+from .file_reader import detect_file_type
+from .file_reader import read_csv_file
+from .file_reader import read_excel_file
+from .file_reader import read_financial_data
 from .generators import card_number_generator
 from .generators import filter_by_currency
 from .generators import transaction_descriptions
@@ -28,4 +32,9 @@ __all__ = [
     'transaction_descriptions',
     'card_number_generator',
     'log',
+    # Новые функции для работы с файлами
+    'read_csv_file',
+    'read_excel_file',
+    'read_financial_data',
+    'detect_file_type',
 ]
