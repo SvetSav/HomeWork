@@ -10,8 +10,12 @@ from .file_reader import read_financial_data
 from .generators import card_number_generator
 from .generators import filter_by_currency
 from .generators import transaction_descriptions
+from .main import main
 from .masks import get_mask_account
 from .masks import get_mask_card_number
+from .operations import count_transactions_by_category
+from .operations import filter_transactions_by_currency
+from .operations import search_transactions_by_description
 from .processing import filter_by_state
 from .processing import sort_by_date
 from .widget import get_date
@@ -37,4 +41,10 @@ __all__ = [
     'read_excel_file',
     'read_financial_data',
     'detect_file_type',
+    # Новые функции для операций
+    'search_transactions_by_description',
+    'count_transactions_by_category',
+    'filter_transactions_by_currency',
+    # Главная функция
+    'main',
 ]
