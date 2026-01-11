@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 # Прямой импорт
 from external_api import convert_amount_to_rub  # noqa: E402
-from external_api import get_exchange_rate
+from external_api import get_exchange_rate  # noqa: E402
 
 
 def test_get_exchange_rate_rub() -> None:

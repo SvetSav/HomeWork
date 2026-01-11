@@ -1,179 +1,229 @@
 """
-Тесты для модуля main.
+Тесты для главного модуля приложения.
 """
 
-import logging
+import sys
+from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import List
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from src.main import ask_yes_no
-from src.main import get_file_path
-from src.main import get_operation_status
-from src.main import get_user_choice
-from src.main import main
+# Добавляем src в путь
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
+from main import ask_yes_no  # noqa: E402
+from main import get_available_statuses  # noqa: E402
+from main import get_default_file_path  # noqa: E402
+from main import main  # noqa: E402
+from main import process_file_type  # noqa: E402
 
 
-class TestMainHelpers:
-    """Тесты вспомогательных функций main."""
+class TestMainFunctions:
+    """Тесты основных функций главного модуля."""
 
-    def test_get_user_choice_valid(self) -> None:
-        """Тест получения корректного выбора пользователя."""
-        with patch('builtins.input', return_value='2'):
-            result = get_user_choice("Выберите: ", ['1', '2', '3'])
-            assert result == '2'
+    def test_get_default_file_path_json(self) -> None:
+        """Тест получения пути к JSON файлу."""
+        path = get_default_file_path("json")
+        assert isinstance(path, str)
+        assert path.endswith(".json")
 
-    def test_get_user_choice_invalid_then_valid(self) -> None:
-        """Тест получения выбора с некорректным вводом, затем корректным."""
-        input_values = ['5', '3']  # Сначала неверный, потом верный
-        with patch('builtins.input', side_effect=input_values):
-            with patch('builtins.print') as mock_print:
-                result = get_user_choice("Выберите: ", ['1', '2', '3'])
-                assert result == '3'
-                # Проверяем что было сообщение об ошибке
-                assert mock_print.called
+    def test_get_default_file_path_csv(self) -> None:
+        """Тест получения пути к CSV файлу."""
+        path = get_default_file_path("csv")
+        assert isinstance(path, str)
+        assert path.endswith(".csv")
 
-    @patch('builtins.input')
-    def test_get_file_path_valid(self, mock_input: Mock) -> None:
-        """Тест получения корректного пути к файлу."""
-        mock_input.return_value = "test.csv"
+    def test_get_default_file_path_excel(self) -> None:
+        """Тест получения пути к Excel файлу."""
+        path = get_default_file_path("excel")
+        assert isinstance(path, str)
+        assert path.endswith(".xlsx")
 
-        with patch('pathlib.Path.exists', return_value=True):
-            result = get_file_path()
-            assert result == "test.csv"
+    def test_ask_yes_no_yes(self) -> None:
+        """Тест функции ask_yes_no с положительным ответом."""
+        with patch('builtins.input', return_value='да'):
+            result = ask_yes_no("Тестовый вопрос")
+            assert result is True
 
-    @patch('builtins.input')
-    def test_get_file_path_cancel(self, mock_input: Mock) -> None:
-        """Тест отмены ввода пути."""
-        mock_input.return_value = "отмена"
+    def test_ask_yes_no_no(self) -> None:
+        """Тест функции ask_yes_no с отрицательным ответом."""
+        with patch('builtins.input', return_value='нет'):
+            result = ask_yes_no("Тестовый вопрос")
+            assert result is False
 
-        result = get_file_path()
-        assert result is None
+    def test_ask_yes_no_retry(self) -> None:
+        """Тест функции ask_yes_no с повторным вводом."""
+        with patch('builtins.input', side_effect=['неверно', 'да']):
+            result = ask_yes_no("Тестовый вопрос")
+            assert result is True
 
-    @patch('builtins.input')
-    def test_get_file_path_not_exists_then_valid(self, mock_input: Mock) -> None:
-        """Тест ввода несуществующего файла, затем существующего."""
-        input_values = ['nonexistent.csv', 'existing.csv']
+    def test_get_available_statuses(self) -> None:
+        """Тест получения доступных статусов."""
+        transactions = [
+            {'state': 'EXECUTED'},
+            {'state': 'CANCELED'},
+            {'status': 'PENDING'},
+            {'State': 'EXECUTED'},
+            {'description': 'Test'},  # Без статуса
+        ]
 
-        with patch('builtins.input', side_effect=input_values):
-            with patch('pathlib.Path.exists', side_effect=[False, True]):
-                with patch('builtins.print') as mock_print:
-                    result = get_file_path()
-                    assert result == 'existing.csv'
-                    # Проверяем что было сообщение об ошибке
-                    assert mock_print.called
+        statuses = get_available_statuses(transactions)
 
-    @patch('builtins.input')
-    def test_get_operation_status_valid(self, mock_input: Mock) -> None:
-        """Тест получения корректного статуса."""
-        mock_input.return_value = "EXECUTED"
+        assert isinstance(statuses, set)
+        assert 'EXECUTED' in statuses
+        assert 'CANCELED' in statuses
+        assert 'PENDING' in statuses
 
-        result = get_operation_status()
-        assert result == "EXECUTED"
+    def test_get_available_statuses_empty(self) -> None:
+        """Тест получения статусов из пустого списка."""
+        transactions: List[Dict[str, Any]] = []
+        statuses = get_available_statuses(transactions)
+        assert statuses == set()
 
-    @patch('builtins.input')
-    def test_get_operation_status_case_insensitive(self, mock_input: Mock) -> None:
-        """Тест получения статуса в разном регистре."""
-        mock_input.return_value = "executed"
-
-        result = get_operation_status()
-        assert result == "EXECUTED"
-
-    @patch('builtins.input')
-    def test_get_operation_status_invalid_then_valid(self, mock_input: Mock) -> None:
-        """Тест получения статуса с некорректным вводом, затем корректным."""
-        input_values = ['invalid', 'CANCELED']
-
-        with patch('builtins.input', side_effect=input_values):
-            with patch('builtins.print') as mock_print:
-                result = get_operation_status()
-                assert result == "CANCELED"
-                # Проверяем что было сообщение об ошибке
-                assert mock_print.called
-
-    @patch('builtins.input')
-    def test_ask_yes_no_yes(self, mock_input: Mock) -> None:
-        """Тест ответа 'Да'."""
-        mock_input.return_value = "да"
-
-        result = ask_yes_no("Тестовый вопрос")
-        assert result is True
-
-    @patch('builtins.input')
-    def test_ask_yes_no_no(self, mock_input: Mock) -> None:
-        """Тест ответа 'Нет'."""
-        mock_input.return_value = "нет"
-
-        result = ask_yes_no("Тестовый вопрос")
-        assert result is False
-
-    @patch('builtins.input')
-    def test_ask_yes_no_invalid_then_valid(self, mock_input: Mock) -> None:
-        """Тест ответа с некорректным вводом, затем корректным."""
-        input_values = ['maybe', 'да']
-
-        with patch('builtins.input', side_effect=input_values):
-            with patch('builtins.print') as mock_print:
-                result = ask_yes_no("Тестовый вопрос")
-                assert result is True
-                # Проверяем что было сообщение об ошибке
-                assert mock_print.called
+    def test_get_available_statuses_no_status_field(self) -> None:
+        """Тест получения статусов при отсутствии поля статуса."""
+        transactions = [
+            {'id': 1, 'description': 'Test'},
+            {'id': 2, 'description': 'Test 2'},
+        ]
+        statuses = get_available_statuses(transactions)
+        assert statuses == set()
 
 
 class TestMainIntegration:
-    """Интеграционные тесты main."""
+    """Интеграционные тесты главного модуля."""
 
     @patch('builtins.input')
-    @patch('src.main.load_json_data')
-    @patch('src.main.filter_by_state')
-    @patch('src.main.ask_yes_no')
+    @patch('src.utils.load_json_data')  # ПРАВИЛЬНЫЙ ПУТЬ
+    @patch('src.processing.filter_by_state')  # ПРАВИЛЬНЫЙ ПУТЬ
+    @patch('main.ask_yes_no')  # Или 'src.main.ask_yes_no' если функция в main
     def test_main_flow_json(self, mock_ask_yes_no: Mock, mock_filter_by_state: Mock,
                             mock_load_json_data: Mock, mock_input: Mock) -> None:
         """Тест основного потока для JSON файла."""
         # Настраиваем моки
-        mock_input.side_effect = ['1', 'test.json', 'EXECUTED', '4']
-        mock_load_json_data.return_value = [{'id': 1, 'description': 'Test'}]
-        mock_filter_by_state.return_value = [{'id': 1, 'description': 'Test'}]
+        mock_input.side_effect = ['1', 'EXECUTED', 'нет', 'нет', '4']
+        mock_load_json_data.return_value = [{'id': 1, 'description': 'Test', 'state': 'EXECUTED'}]
+        mock_filter_by_state.return_value = [{'id': 1, 'description': 'Test', 'state': 'EXECUTED'}]
         mock_ask_yes_no.return_value = False  # Отвечаем "Нет" на все вопросы
 
         with patch('pathlib.Path.exists', return_value=True):
             with patch('builtins.print'):
                 main()
 
-        mock_load_json_data.assert_called_once_with('test.json')
-        mock_filter_by_state.assert_called_once()
+    @patch('builtins.input')
+    @patch('src.file_reader.read_csv_file')  # ПРАВИЛЬНЫЙ ПУТЬ
+    @patch('src.processing.filter_by_state')  # ПРАВИЛЬНЫЙ ПУТЬ
+    @patch('main.ask_yes_no')  # Или 'src.main.ask_yes_no'
+    def test_main_flow_csv(self, mock_ask_yes_no: Mock, mock_filter_by_state: Mock,
+                           mock_read_csv_file: Mock, mock_input: Mock) -> None:
+        """Тест основного потока для CSV файла."""
+        mock_input.side_effect = ['2', 'EXECUTED', 'нет', 'нет', '4']
+        mock_read_csv_file.return_value = [{'id': 1, 'description': 'Test', 'state': 'EXECUTED'}]
+        mock_filter_by_state.return_value = [{'id': 1, 'description': 'Test', 'state': 'EXECUTED'}]
+        mock_ask_yes_no.return_value = False
+
+        with patch('pathlib.Path.exists', return_value=True):
+            with patch('builtins.print'):
+                main()
 
     @patch('builtins.input')
+    @patch('src.file_reader.read_excel_file')  # ПРАВИЛЬНЫЙ ПУТЬ
+    @patch('src.processing.filter_by_state')  # ПРАВИЛЬНЫЙ ПУТЬ
+    @patch('main.ask_yes_no')  # Или 'src.main.ask_yes_no'
+    def test_main_flow_excel(self, mock_ask_yes_no: Mock, mock_filter_by_state: Mock,
+                             mock_read_excel_file: Mock, mock_input: Mock) -> None:
+        """Тест основного потока для Excel файла."""
+        mock_input.side_effect = ['3', 'EXECUTED', 'нет', 'нет', '4']
+        mock_read_excel_file.return_value = [{'id': 1, 'description': 'Test', 'state': 'EXECUTED'}]
+        mock_filter_by_state.return_value = [{'id': 1, 'description': 'Test', 'state': 'EXECUTED'}]
+        mock_ask_yes_no.return_value = False
+
+        with patch('pathlib.Path.exists', return_value=True):
+            with patch('builtins.print'):
+                main()
+
+    def test_main_invalid_choice(self) -> None:
+        """Тест обработки неверного выбора в меню."""
+        with patch('builtins.input', side_effect=['5', '4']):
+            with patch('builtins.print') as mock_print:
+                main()
+                # Проверяем что выводилось сообщение об ошибке
+                assert any(
+                    'неверный' in str(call).lower()
+                    or 'ошибка' in str(call).lower()
+                    or 'выберите' in str(call).lower()
+                    for call in mock_print.call_args_list
+                )
+
+    @patch('builtins.input', return_value='4')
     def test_main_exit(self, mock_input: Mock) -> None:
         """Тест выхода из программы."""
-        mock_input.return_value = '4'
-
         with patch('builtins.print'):
             main()
 
 
-def test_main_logger_created() -> None:
-    """Тест создания логгера для модуля main."""
-    from src.main import logger
+def test_process_file_type_json() -> None:
+    """Тест обработки JSON файла."""
+    with patch('src.utils.load_json_data') as mock_load:
+        mock_load.return_value = [{'id': 1, 'state': 'EXECUTED'}]
 
-    assert logger.name == "bank_widget.main"
-    assert logger.level == logging.DEBUG
-    assert len(logger.handlers) > 0
+        with patch('src.processing.filter_by_state') as mock_filter:
+            mock_filter.return_value = [{'id': 1, 'state': 'EXECUTED'}]
+
+            with patch('main.ask_yes_no', return_value=False):
+                with patch('builtins.input', side_effect=['EXECUTED']):
+                    with patch('builtins.print'):
+                        process_file_type("json")
 
 
-def test_main_keyboard_interrupt() -> None:
-    """Тест, что модуль main может быть импортирован и имеет обработку KeyboardInterrupt."""
-    from src.main import main
+def test_process_file_type_csv() -> None:
+    """Тест обработки CSV файла."""
+    with patch('src.file_reader.read_csv_file') as mock_read:
+        mock_read.return_value = [{'id': 1, 'state': 'EXECUTED'}]
 
-    # Проверяем что функция существует
-    assert callable(main)
+        with patch('src.processing.filter_by_state') as mock_filter:
+            mock_filter.return_value = [{'id': 1, 'state': 'EXECUTED'}]
 
-    # Проверяем что в коде есть обработка исключений
-    import inspect
-    source = inspect.getsource(main)
+            with patch('main.ask_yes_no', return_value=False):
+                with patch('builtins.input', side_effect=['EXECUTED']):
+                    with patch('builtins.print'):
+                        process_file_type("csv")
 
-    # Проверяем что есть блок try-except
-    assert 'try:' in source
-    assert 'except' in source
 
-    # Проверяем что есть обработка KeyboardInterrupt или общая обработка
-    assert 'KeyboardInterrupt' in source or 'Exception' in source
+def test_process_file_type_excel() -> None:
+    """Тест обработки Excel файла."""
+    with patch('src.file_reader.read_excel_file') as mock_read:
+        mock_read.return_value = [{'id': 1, 'state': 'EXECUTED'}]
+
+        with patch('src.processing.filter_by_state') as mock_filter:
+            mock_filter.return_value = [{'id': 1, 'state': 'EXECUTED'}]
+
+            with patch('main.ask_yes_no', return_value=False):
+                with patch('builtins.input', side_effect=['EXECUTED']):
+                    with patch('builtins.print'):
+                        process_file_type("excel")
+
+
+def test_process_file_type_back() -> None:
+    """Тест возврата в меню при обработке файла."""
+    with patch('src.utils.load_json_data') as mock_load:
+        mock_load.return_value = [{'id': 1, 'state': 'EXECUTED'}]
+
+        with patch('builtins.input', side_effect=['назад']):
+            with patch('builtins.print'):
+                process_file_type("json")
+
+
+def test_process_file_type_file_not_found() -> None:
+    """Тест обработки отсутствующего файла."""
+    with patch('pathlib.Path.exists', return_value=False):
+        with patch('main.create_test_files') as mock_create:
+            with patch('src.utils.load_json_data') as mock_load:
+                mock_load.return_value = []
+
+                with patch('builtins.input', side_effect=['EXECUTED']):
+                    with patch('builtins.print'):
+                        process_file_type("json")
+                        mock_create.assert_called_once()

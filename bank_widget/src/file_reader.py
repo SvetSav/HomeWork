@@ -38,6 +38,38 @@ if not logger.handlers:
     logger.addHandler(file_handler)
 
 
+def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Нормализует названия колонок DataFrame.
+
+    Args:
+        df: DataFrame для нормализации
+
+    Returns:
+        DataFrame с нормализованными названиями колонок
+    """
+    # Приводим названия колонок к нижнему регистру и удаляем пробелы
+    df.columns = [str(col).strip().lower() for col in df.columns]
+
+    # Маппинг русских названий на английские
+    column_mapping = {
+        'статус': 'state',
+        'дата': 'date',
+        'описание': 'description',
+        'откуда': 'from',
+        'куда': 'to',
+        'сумма': 'amount',
+        'валюта': 'currency',
+        'id': 'id',
+        'идентификатор': 'id'
+    }
+
+    # Переименовываем колонки
+    df.rename(columns=column_mapping, inplace=True)
+
+    return df
+
+
 def read_csv_file(file_path: str) -> List[Dict[str, Any]]:
     """
     Считывает финансовые операции из CSV файла.
@@ -60,48 +92,67 @@ def read_csv_file(file_path: str) -> List[Dict[str, Any]]:
             logger.error(f"CSV файл не найден: {file_path}")
             raise FileNotFoundError(f"Файл не найден: {file_path}")
 
-        # Читаем CSV файл
-        df = pd.read_csv(file_path, encoding='utf-8')
-        logger.debug(f"CSV файл прочитан, размер: {df.shape}")
+        # Пробуем разные кодировки
+        encodings = ['utf-8', 'cp1251', 'windows-1251', 'latin1']
 
-        if df.empty:
-            logger.warning(f"CSV файл пуст: {file_path}")
-            return []
+        for encoding in encodings:
+            try:
+                logger.debug(f"Попытка чтения с кодировкой {encoding}")
+                df = pd.read_csv(file_path, encoding=encoding)
 
-        # Конвертируем DataFrame в список словарей
-        # to_dict('records') возвращает List[Dict[Hashable, Any]], нужно преобразовать
-        transactions_raw = df.to_dict('records')
-        transactions = cast(List[Dict[str, Any]], transactions_raw)
+                # Нормализуем названия колонок
+                df = normalize_column_names(df)
 
-        logger.info(f"Успешно прочитано {len(transactions)} транзакций из CSV файла: {file_path}")
+                logger.debug(f"CSV файл прочитан, размер: {df.shape}")
 
-        return transactions
+                if df.empty:
+                    logger.warning(f"CSV файл пуст: {file_path}")
+                    return []
+
+                # Заменяем NaN на None
+                df = df.where(pd.notnull(df), None)  # type: ignore[call-overload]
+
+                # Конвертируем DataFrame в список словарей
+                transactions_raw = df.to_dict('records')
+                transactions = cast(List[Dict[str, Any]], transactions_raw)
+
+                logger.info(f"Успешно прочитано {len(transactions)} транзакций из CSV файла: {file_path}")
+
+                return transactions
+
+            except UnicodeDecodeError:
+                logger.debug(f"Кодировка {encoding} не подошла")
+                continue
+            except Exception as e:
+                logger.debug(f"Ошибка при чтении с кодировкой {encoding}: {e}")
+                continue
+
+        # Если ни одна кодировка не подошла
+        logger.error(f"Не удалось прочитать CSV файл ни с одной из кодировок: {file_path}")
+        raise ValueError(f"Не удалось прочитать CSV файл: {file_path}")
 
     except pd.errors.EmptyDataError:
         logger.error(f"CSV файл пуст или не содержит данных: {file_path}")
-        raise ValueError(f"Файл пуст или не содержит данных: {file_path}")
+        return []
     except pd.errors.ParserError as e:
         logger.error(f"Ошибка парсинга CSV файла {file_path}: {e}")
-        raise ValueError(f"Ошибка формата CSV файла: {file_path}")
-    except UnicodeDecodeError:
-        # Пробуем другую кодировку
-        logger.debug(f"Попытка чтения CSV с кодировкой cp1251: {file_path}")
+        # Попробуем читать с другими параметрами
         try:
-            df = pd.read_csv(file_path, encoding='cp1251')
+            df = pd.read_csv(file_path, on_bad_lines='warn')
+            df = normalize_column_names(df)
             if df.empty:
                 return []
-
+            df = df.where(pd.notnull(df), None)  # type: ignore[call-overload]
             transactions_raw = df.to_dict('records')
             transactions = cast(List[Dict[str, Any]], transactions_raw)
-
-            logger.info(f"Успешно прочитано {len(transactions)} транзакций из CSV (cp1251): {file_path}")
+            logger.info(f"Прочитано {len(transactions)} транзакций (с пропуском ошибок)")
             return transactions
+        except Exception as parse_error:
+            logger.error(f"Не удалось прочитать CSV даже с пропуском ошибок: {parse_error}")
+            raise ValueError(f"Ошибка формата CSV файла: {file_path}")
         except Exception as e:
-            logger.error(f"Ошибка чтения CSV файла {file_path} с кодировкой cp1251: {e}")
-            raise ValueError(f"Не удалось прочитать CSV файл: {file_path}")
-    except Exception as e:
-        logger.error(f"Неожиданная ошибка при чтении CSV файла {file_path}: {e}")
-        raise
+            logger.error(f"Неожиданная ошибка при чтении CSV файла {file_path}: {e}")
+            raise
 
 
 def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -133,11 +184,17 @@ def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Di
         else:
             df = pd.read_excel(file_path)
 
+        # Нормализуем названия колонок
+        df = normalize_column_names(df)
+
         logger.debug(f"Excel файл прочитан, размер: {df.shape}")
 
         if df.empty:
             logger.warning(f"Excel файл пуст: {file_path}")
             return []
+
+        # Заменяем NaN на None
+        df = df.where(pd.notnull(df), None)  # type: ignore[call-overload]
 
         # Конвертируем DataFrame в список словарей
         transactions_raw = df.to_dict('records')
@@ -149,10 +206,27 @@ def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Di
 
     except pd.errors.EmptyDataError:
         logger.error(f"Excel файл пуст или не содержит данных: {file_path}")
-        raise ValueError(f"Файл пуст или не содержит данных: {file_path}")
+        return []
     except ValueError as e:
         if "Worksheet" in str(e):
             logger.error(f"Лист '{sheet_name}' не найден в Excel файле {file_path}")
+            # Пробуем прочитать все листы
+            try:
+                xls = pd.ExcelFile(file_path)
+                sheet_names = xls.sheet_names
+                logger.info(f"Доступные листы: {sheet_names}")
+                if sheet_names:
+                    df = pd.read_excel(file_path, sheet_name=sheet_names[0])
+                    df = normalize_column_names(df)
+                    if df.empty:
+                        return []
+                    df = df.where(pd.notnull(df), None)  # type: ignore[call-overload]
+                    transactions_raw = df.to_dict('records')
+                    transactions = cast(List[Dict[str, Any]], transactions_raw)
+                    logger.info(f"Прочитано {len(transactions)} транзакций из первого листа '{sheet_names[0]}'")
+                    return transactions
+            except Exception as sheet_error:
+                logger.debug(f"Не удалось прочитать первый лист: {sheet_error}")
             raise ValueError(f"Лист '{sheet_name}' не найден в файле: {file_path}")
         else:
             logger.error(f"Ошибка чтения Excel файла {file_path}: {e}")
@@ -177,7 +251,7 @@ def detect_file_type(file_path: str) -> str:
 
     if ext == '.csv':
         return 'csv'
-    elif ext in ['.xlsx', '.xls']:
+    elif ext in ['.xlsx', '.xls', '.xlsm', '.xlsb']:
         return 'excel'
     elif ext == '.json':
         return 'json'

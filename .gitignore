@@ -214,3 +214,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Исключаем большие файлы данных
+data/large_*
+data/*.xlsx
+
+# Но оставляем тестовые файлы
+!data/transactions.json
+!data/transactions.csv
+!data/transactions.xlsx
