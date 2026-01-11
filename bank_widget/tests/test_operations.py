@@ -4,17 +4,17 @@
 
 import logging
 import re  # <-- ДОБАВИТЬ ЭТОТ ИМПОРТ
-from typing import Any, Dict, List
-from unittest.mock import Mock, patch
+from typing import Any
+from typing import Dict
+from typing import List
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
-
-from src.operations import (
-    count_transactions_by_category,
-    filter_transactions_by_currency,
-    format_transaction_for_display,
-    search_transactions_by_description,
-)
+from src.operations import count_transactions_by_category
+from src.operations import filter_transactions_by_currency
+from src.operations import format_transaction_for_display
+from src.operations import search_transactions_by_description
 
 
 class TestOperations:

@@ -6,16 +6,18 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from .file_reader import read_financial_data
-from .operations import (
-    count_transactions_by_category,
-    filter_transactions_by_currency,
-    format_transaction_for_display,
-    search_transactions_by_description,
-)
-from .processing import filter_by_state, sort_by_date
+from .operations import count_transactions_by_category
+from .operations import filter_transactions_by_currency
+from .operations import format_transaction_for_display
+from .operations import search_transactions_by_description
+from .processing import filter_by_state
+from .processing import sort_by_date
 from .utils import load_json_data
 
 # Создаем логгер для модуля main

@@ -1,7 +1,8 @@
 """Модуль для маскировки номеров банковских карт и счетов."""
 
 import logging
-from logging import FileHandler, Formatter
+from logging import FileHandler
+from logging import Formatter
 from pathlib import Path
 
 # Создаем логгер для модуля masks

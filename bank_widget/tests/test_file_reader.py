@@ -5,17 +5,15 @@
 import logging
 import os
 import tempfile
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
-
-from src.file_reader import (
-    detect_file_type,
-    read_csv_file,
-    read_excel_file,
-    read_financial_data,
-)
+from src.file_reader import detect_file_type
+from src.file_reader import read_csv_file
+from src.file_reader import read_excel_file
+from src.file_reader import read_financial_data
 
 
 class TestFileReader:

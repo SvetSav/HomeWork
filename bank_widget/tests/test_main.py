@@ -3,15 +3,14 @@
 """
 
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+from unittest.mock import patch
 
-from src.main import (
-    ask_yes_no,
-    get_file_path,
-    get_operation_status,
-    get_user_choice,
-    main,
-)
+from src.main import ask_yes_no
+from src.main import get_file_path
+from src.main import get_operation_status
+from src.main import get_user_choice
+from src.main import main
 
 
 class TestMainHelpers:

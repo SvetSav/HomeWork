@@ -5,9 +5,12 @@
 import logging
 import os
 import tempfile
-from logging import FileHandler, Formatter
+from logging import FileHandler
+from logging import Formatter
 from pathlib import Path
-from src.logger_config import setup_logger, get_module_logger  # noqa: E402
+
+from src.logger_config import get_module_logger  # noqa: E402
+from src.logger_config import setup_logger
 
 
 class TestLoggerConfig:

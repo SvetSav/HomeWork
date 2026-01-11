@@ -3,9 +3,12 @@
 import json
 import logging
 import os
-from logging import FileHandler, Formatter
+from logging import FileHandler
+from logging import Formatter
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
+from typing import Dict
+from typing import List
 
 # Создаем логгер для модуля utils
 logger = logging.getLogger('bank_widget.utils')

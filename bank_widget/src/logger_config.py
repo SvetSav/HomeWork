@@ -3,7 +3,8 @@
 """
 
 import logging
-from logging import FileHandler, Formatter
+from logging import FileHandler
+from logging import Formatter
 from pathlib import Path
 from typing import Optional
 

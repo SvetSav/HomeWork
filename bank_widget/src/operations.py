@@ -6,7 +6,11 @@
 import logging
 import re
 from collections import Counter
-from typing import Any, Dict, List, Optional, Pattern
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Pattern
 
 # Создаем логгер для модуля operations
 logger = logging.getLogger('bank_widget.operations')
@@ -190,7 +194,8 @@ def format_transaction_for_display(transaction: Dict[str, Any]) -> str:
         Отформатированная строка
     """
     try:
-        from .widget import get_date, mask_account_card
+        from .widget import get_date
+        from .widget import mask_account_card
 
         # Получаем дату
         date_str = get_date(transaction.get('date', ''))
