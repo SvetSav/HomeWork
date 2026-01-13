@@ -10,7 +10,13 @@ from typing import List
 
 
 def filter_by_currency(transactions: List[Dict[str, Any]], currency: str) -> Iterator[Dict[str, Any]]:
-    """
+    currency_upper = currency.upper()  # Приводим к верхнему регистру
+    for transaction in transactions:
+        transaction_currency = transaction.get('currency', '')
+        if isinstance(transaction_currency, str):
+            if transaction_currency.upper() == currency_upper:
+                yield transaction
+                """
     Фильтрует транзакции по заданной валюте.
 
     Args:

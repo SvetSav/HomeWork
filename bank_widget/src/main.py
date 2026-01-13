@@ -1,328 +1,325 @@
 """
 Главный модуль банковского виджета.
-Обеспечивает пользовательский интерфейс и связывает все функциональности.
+Линейная версия без рекурсии.
 """
 
-import logging
 import os
-from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 
-# Создаем логгер для модуля main
-logger = logging.getLogger('bank_widget.main')
-logger.setLevel(logging.DEBUG)
 
-# Убедимся, что у логгера нет обработчиков
-if not logger.handlers:
-    # Создаем путь к файлу логов
-    current_dir = Path(__file__).parent  # src/
-    project_root = current_dir.parent    # project_root/
-    log_dir = project_root / 'logs'
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / 'main.log'
-
-    # Настраиваем file_handler
-    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-
-    # Настраиваем formatter
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-
-    # Добавляем обработчик
-    logger.addHandler(file_handler)
+def debug_print(message: str) -> None:
+    """Печать отладочных сообщений."""
+    print(f"[DEBUG] {message}")
 
 
-def ask_yes_no(question: str) -> bool:
-    """
-    Задает вопрос с ответом да/нет.
+def load_transactions(choice: str, base_dir: str) -> List[Dict[str, Any]]:
+    """Загружает транзакции из выбранного файла."""
+    debug_print(f"Начало load_transactions, выбор: {choice}")
 
-    Args:
-        question: Текст вопроса
-
-    Returns:
-        True если ответ 'да', False если 'нет'
-    """
-    while True:
-        answer = input(f"{question} (да/нет): ").strip().lower()
-        if answer in ('да', 'д', 'yes', 'y'):
-            return True
-        elif answer in ('нет', 'н', 'no', 'n'):
-            return False
-        else:
-            print("Пожалуйста, ответьте 'да' или 'нет'.")
-
-
-def get_default_file_path(file_type: str) -> str:
-    """
-    Возвращает путь к файлу по умолчанию для указанного типа.
-
-    Args:
-        file_type: Тип файла ('json', 'csv', 'excel')
-
-    Returns:
-        Путь к файлу
-    """
-    project_root = Path(__file__).parent.parent
-    data_dir = project_root / "data"
-
-    files = {
-        'json': data_dir / "transactions.json",
-        'csv': data_dir / "transactions.csv",
-        'excel': data_dir / "transactions.xlsx"
+    file_paths = {
+        "1": ("JSON", os.path.join(base_dir, "../data/transactions.json")),
+        "2": ("CSV", os.path.join(base_dir, "../data/transactions.csv")),
+        "3": ("Excel", os.path.join(base_dir, "../data/transactions.xlsx")),
     }
 
-    file_path = files[file_type]
+    if choice not in file_paths:
+        debug_print(f"Неверный выбор: {choice}")
+        return []
 
-    # Если файл не существует, создаем тестовые данные
-    if not file_path.exists():
-        logger.warning(f"Файл {file_path} не найден. Создаем тестовые данные...")
-        create_test_files()
-
-    return str(file_path)
-
-
-def create_test_files() -> None:
-    """Создает тестовые файлы если они отсутствуют."""
-    try:
-        # Пробуем импортировать из внешнего модуля
-        import sys
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from create_test_files import create_test_files as create_files
-        create_files()
-    except ImportError:
-        # Простой способ создания файлов
-        import json
-
-        import pandas as pd
-
-        project_root = Path(__file__).parent.parent
-        data_dir = project_root / "data"
-        data_dir.mkdir(exist_ok=True)
-
-        # Простые тестовые данные
-        test_data = [
-            {"id": 1, "date": "2024-01-01", "state": "EXECUTED", "amount": 1000, "currency": "RUB"},
-            {"id": 2, "date": "2024-01-02", "state": "CANCELED", "amount": 500, "currency": "USD"},
-            {"id": 3, "date": "2024-01-03", "state": "EXECUTED", "amount": 1500, "currency": "RUB"},
-        ]
-
-        # JSON
-        with open(data_dir / "transactions.json", 'w', encoding='utf-8') as f:
-            json.dump(test_data, f, ensure_ascii=False, indent=2)
-
-        # CSV
-        df = pd.DataFrame(test_data)
-        df.to_csv(data_dir / "transactions.csv", index=False, encoding='utf-8')
-
-        # Excel
-        df.to_excel(data_dir / "transactions.xlsx", index=False)
-
-        logger.info("Созданы тестовые файлы в папке data/")
-
-
-def process_file_type(file_type: str) -> None:
-    """
-    Обрабатывает файл указанного типа.
-
-    Args:
-        file_type: Тип файла ('json', 'csv', 'excel')
-    """
-    logger.info(f"Обработка файла типа: {file_type}")
-
-    # Получаем путь к файлу по умолчанию
-    file_path = get_default_file_path(file_type)
-
-    print(f"\nДля обработки выбран {file_type.upper()}-файл.")
-    print(f"Путь к файлу: {file_path}")
+    file_type, file_path = file_paths[choice]
+    debug_print(f"Загрузка {file_type} файла: {file_path}")
 
     try:
-        # Чтение файла
-        if file_type == "json":
+        if choice == "1":
             from src.utils import load_json_data
+
             transactions = load_json_data(file_path)
-        elif file_type == "csv":
+        elif choice == "2":
             from src.file_reader import read_csv_file
+
             transactions = read_csv_file(file_path)
-        elif file_type == "excel":
+        elif choice == "3":
             from src.file_reader import read_excel_file
+
             transactions = read_excel_file(file_path)
         else:
-            print("Неподдерживаемый тип файла")
-            return
+            return []
 
-        if transactions is None:
-            print("Не удалось загрузить данные из файла.")
-            return
+        debug_print(f"Загружено {len(transactions) if transactions else 0} транзакций")
+        return transactions if transactions else []
 
-        print(f"\nЗагружено {len(transactions)} транзакций.")
+    except Exception as e:
+        debug_print(f"Ошибка загрузки: {e}")
+        return []
 
-        if not transactions:
-            print("Файл не содержит транзакций или пуст.")
-            return
 
-        # Получаем доступные статусы из данных
-        statuses = get_available_statuses(transactions)
+def filter_by_status_interactive(transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Интерактивная фильтрация транзакций по статусу."""
+    debug_print("Начало filter_by_status_interactive")
 
-        if statuses:
-            print(f"\nДоступные для фильтровки статусы: {', '.join(sorted(statuses))}")
+    if not transactions:
+        debug_print("Нет транзакций для фильтрации")
+        return []
+
+    # Получаем уникальные статусы из данных
+    valid_statuses = set()
+    for transaction in transactions:
+        state = transaction.get("state")
+        if state:
+            valid_statuses.add(state.upper())
+
+    if not valid_statuses:
+        debug_print("Не найдено статусов в данных")
+        return transactions
+
+    debug_print(f"Доступные статусы в данных: {valid_statuses}")
+
+    while True:
+        print("\n" + "=" * 60)
+        print("ФИЛЬТРАЦИЯ ПО СТАТУСУ")
+        print(f"Доступные статусы: {', '.join(sorted(valid_statuses))}")
+        print("Введите 'назад' для возврата в главное меню")
+        print("=" * 60)
+
+        status_input = input("Введите статус: ").strip().upper()
+        debug_print(f"Пользователь ввел статус: {status_input}")
+
+        if status_input == "НАЗАД":
+            debug_print("Пользователь выбрал 'назад'")
+            return []
+
+        if not status_input:
+            print("Статус не может быть пустым.")
+            continue
+
+        if status_input not in valid_statuses:
+            print(f'Статус операции "{status_input}" недоступен.')
+            print(f'Доступные статусы: {", ".join(sorted(valid_statuses))}')
+            continue
+
+        debug_print(f"Применение фильтра по статусу: {status_input}")
+        from src.processing import filter_by_state
+
+        filtered = filter_by_state(transactions, status_input)
+
+        if filtered:
+            print(f'\n✓ Операции отфильтрованы по статусу "{status_input}"')
+            print(f"✓ Найдено {len(filtered)} транзакций")
+            debug_print(f"После фильтрации осталось {len(filtered)} транзакций")
+            return filtered
         else:
-            print("\nВ данных не найдены статусы транзакций.")
-            if transactions:
-                print("\nСтруктура данных:")
-                first_transaction = transactions[0]
-                print(f"Доступные поля: {', '.join(first_transaction.keys())}")
+            print(f'\n✗ Не найдено транзакций со статусом "{status_input}"')
+            print("Попробуйте другой статус.")
+            # НЕ вызываем рекурсивно! Просто продолжаем цикл
 
-        # Запрос статуса для фильтрации
-        while True:
-            print("\n" + "-" * 50)
-            state_input = input("Введите статус, по которому необходимо выполнить фильтрацию\n"
-                                "(или 'назад' для возврата в меню): ").strip()
 
-            if state_input.lower() in ('назад', 'back', 'отмена', 'cancel'):
-                print("Возврат в главное меню...")
+def ask_yes_no_question(question: str) -> bool:
+    """Задает вопрос с ответом да/нет."""
+    debug_print(f"Задан вопрос: {question}")
+
+    while True:
+        answer = input(f"{question} (да/нет): ").strip().lower()
+        debug_print(f"Ответ пользователя: {answer}")
+
+        if answer in ["да", "д", "yes", "y"]:
+            return True
+        elif answer in ["нет", "н", "no", "n"]:
+            return False
+        else:
+            print('Пожалуйста, введите "Да" или "Нет".')
+
+
+def process_transactions(transactions: List[Dict[str, Any]]) -> None:
+    """Обработка загруженных транзакций."""
+    debug_print(f"Начало process_transactions с {len(transactions)} транзакциями")
+
+    if not transactions:
+        print("Нет транзакций для обработки.")
+        return
+
+    current_transactions = transactions.copy()
+
+    # Шаг 1: Фильтрация по статусу
+    debug_print("Шаг 1: Фильтрация по статусу")
+    filtered = filter_by_status_interactive(current_transactions)
+
+    if not filtered:
+        debug_print("Фильтрация отменена или не дала результатов")
+        print("\nФильтрация отменена.")
+        return
+
+    current_transactions = filtered
+
+    # Шаг 2: Сортировка по дате
+    debug_print("Шаг 2: Проверка сортировки")
+    if ask_yes_no_question("\nОтсортировать операции по дате?"):
+        debug_print("Пользователь выбрал сортировку")
+
+        print("\nОтсортировать по возрастанию или по убыванию?")
+        sort_type = input("(по возрастанию/по убыванию): ").strip().lower()
+        debug_print(f"Тип сортировки: {sort_type}")
+
+        from src.processing import sort_by_date
+
+        if sort_type == "по возрастанию":
+            current_transactions = sort_by_date(current_transactions, reverse=False)
+            print("✓ Транзакции отсортированы по возрастанию даты")
+        else:
+            current_transactions = sort_by_date(current_transactions, reverse=True)
+            print("✓ Транзакции отсортированы по убыванию даты")
+    else:
+        debug_print("Пользователь отказался от сортировки")
+
+    # Шаг 3: Фильтр по валюте
+    debug_print("Шаг 3: Проверка фильтра по валюте")
+    if ask_yes_no_question("\nВыводить только рублевые транзакции?"):
+        debug_print("Применение фильтра по валюте RUB")
+        from src.generators import filter_by_currency
+
+        # ИСПРАВЛЕНИЕ: Преобразуем генератор в список
+        rub_transactions = list(filter_by_currency(current_transactions, "RUB"))
+
+        if rub_transactions:
+            current_transactions = rub_transactions
+            print(f"✓ Выводятся только рублевые транзакции ({len(current_transactions)} шт.)")
+        else:
+            print("✗ Рублевых транзакций не найдено")
+            # Можно спросить, продолжить ли с текущими транзакциями
+            if ask_yes_no_question("Продолжить с текущими транзакциями?"):
+                print("Продолжаем без фильтрации по валюте")
+            else:
+                print("Операция отменена")
                 return
 
-            if not state_input:
-                print("Статус не может быть пустым.")
-                continue
+    # Шаг 4: Фильтр по ключевому слову
+    debug_print("Шаг 4: Проверка фильтра по ключевому слову")
+    if ask_yes_no_question("\nОтфильтровать по слову в описании?"):
+        debug_print("Пользователь выбрал фильтр по ключевому слову")
 
-            # Проверяем, есть ли такой статус в данных
-            if statuses and state_input.upper() not in [s.upper() for s in statuses]:
-                print(f"\nСтатус операции '{state_input}' недоступен.")
-                if statuses:
-                    print(f"Доступные статусы: {', '.join(sorted(statuses))}")
-                continue
+        keyword = input("\nВведите слово для поиска: ").strip()
+        debug_print(f"Ключевое слово: {keyword}")
 
-            break
+        if keyword:
+            from src.processing import process_bank_search
 
-        # Фильтрация
-        from src.processing import filter_by_state
-        filtered_transactions = filter_by_state(transactions, state_input)
+            searched_generator = process_bank_search(current_transactions, keyword)
+            current_transactions = list(searched_generator)
 
-        if filtered_transactions:
-            print(f"\nОперации отфильтрованы по статусу '{state_input.upper()}'")
-            print(f"Найдено {len(filtered_transactions)} транзакций.")
-
-            # Предлагаем дополнительные действия
-            if ask_yes_no("\nПоказать первые 5 транзакций?"):
-                print("\nПервые 5 транзакций:")
-                print("-" * 50)
-                for i, transaction in enumerate(filtered_transactions[:5], 1):
-                    print(f"\nТранзакция {i}:")
-                    for key, value in list(transaction.items())[:5]:  # Показываем первые 5 полей
-                        print(f"  {key}: {value}")
-
-                    if len(transaction) > 5:
-                        print(f"  ... и еще {len(transaction) - 5} полей")
-
-            if ask_yes_no("\nОтсортировать транзакции по дате (новые первыми)?"):
-                from src.processing import sort_by_date
-                sorted_transactions = sort_by_date(filtered_transactions, reverse=True)
-                print("\n✓ Транзакции отсортированы по дате (от новых к старым)")
-
-                if ask_yes_no("Показать 3 самые новые транзакции?"):
-                    print("\n3 самые новые транзакции:")
-                    print("-" * 50)
-                    for i, transaction in enumerate(sorted_transactions[:3], 1):
-                        date = transaction.get('date', 'N/A')
-                        desc = transaction.get('description', 'N/A')
-                        amount = transaction.get('amount', 'N/A')
-                        currency = transaction.get('currency', 'N/A')
-
-                        print(f"\n{i}. {date}")
-                        print(f"   Описание: {desc[:50]}{'...' if len(desc) > 50 else ''}")
-                        print(f"   Сумма: {amount} {currency}")
-
+            if current_transactions:
+                print(f"✓ Найдено {len(current_transactions)} транзакций с '{keyword}'")
+            else:
+                print(f"✗ Не найдено транзакций с '{keyword}'")
         else:
-            print(f"\nОперации отфильтрованы по статусу '{state_input.upper()}'")
-            print("Найдено 0 транзакций.")
-            print("Не найдено транзакций с выбранным статусом.")
+            debug_print("Ключевое слово не введено")
+    else:
+        debug_print("Фильтр по ключевому слову отменен")
 
-            if ask_yes_no("Попробовать другой статус?"):
-                # Возвращаемся к выбору статуса
-                return process_file_type(file_type)
+    # Шаг 5: Вывод результатов
+    debug_print("Шаг 5: Вывод результатов")
+    print("\n" + "=" * 60)
+    print("РЕЗУЛЬТАТЫ ОБРАБОТКИ")
+    print("=" * 60)
 
-    except FileNotFoundError as e:
-        print(f"\nОшибка: Файл не найден: {e}")
-        print("Убедитесь, что файл существует в папке data/")
-    except Exception as e:
-        logger.error(f"Ошибка при обработке файла {file_path}: {e}")
-        print(f"\nОшибка при обработке файла: {e}")
+    if not current_transactions:
+        print("После обработки не осталось транзакций.")
+        return
 
+    transactions_list = list(current_transactions)
+    print(f"Итоговое количество транзакций: {len(transactions_list)}")
 
-def get_available_statuses(transactions: List[Dict[str, Any]]) -> set:
-    """
-    Получает доступные статусы из транзакций.
+    # Показать результаты
+    print("\nПервые 5 транзакций:")
+    print("-" * 40)
 
-    Args:
-        transactions: Список транзакций
+    for i, transaction in enumerate(current_transactions[:5], 1):
+        print(f"\n{i}. {transaction.get('date', 'Н/Д')}")
+        print(f"   Описание: {transaction.get('description', 'Н/Д')}")
+        print(f"   Статус: {transaction.get('state', 'Н/Д')}")
+        print(f"   Сумма: {transaction.get('amount', 'Н/Д')} {transaction.get('currency', '')}")
 
-    Returns:
-        Множество уникальных статусов
-    """
-    statuses = set()
-    possible_state_columns = ['state', 'status', 'State', 'Status', 'статус']
+    if len(current_transactions) > 5:
+        print(f"\n... и еще {len(current_transactions) - 5} транзакций.")
 
-    for transaction in transactions:
-        for col in possible_state_columns:
-            if col in transaction and transaction[col]:
-                status = str(transaction[col]).strip()
-                if status:
-                    statuses.add(status.upper())
-
-    return statuses
+    debug_print(f"Завершение process_transactions, обработано {len(current_transactions)} транзакций")
 
 
 def main() -> None:
-    """
-    Главная функция программы.
-    Реализует пользовательский интерфейс и связывает все функциональности.
-    """
-    logger.info("Запуск банковского виджета")
+    """Главная функция программы."""
+    debug_print("=" * 60)
+    debug_print("ЗАПУСК ПРОГРАММЫ")
+    debug_print("=" * 60)
 
+    print("\n" + "=" * 60)
+    print("ПРИЛОЖЕНИЕ ДЛЯ РАБОТЫ С БАНКОВСКИМИ ТРАНЗАКЦИЯМИ")
     print("=" * 60)
-    print("Привет! Добро пожаловать в программу работы с банковскими транзакциями.")
-    print("=" * 60)
 
-    # Проверяем наличие файлов данных
-    print("\nПроверка доступных файлов данных...")
-    for file_type, ext in [('JSON', '.json'), ('CSV', '.csv'), ('Excel', '.xlsx')]:
-        file_path = get_default_file_path(file_type.lower())
-        if os.path.exists(file_path):
-            print(f"✓ {file_type} файл: {file_path}")
-        else:
-            print(f"✗ {file_type} файл не найден: {file_path}")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_print(f"Базовый каталог: {base_dir}")
 
+    # Главный цикл программы
     while True:
-        print("\n" + "=" * 50)
-        print("МЕНЮ:")
+        debug_print("\nНачало главного цикла")
+
+        print("\n" + "=" * 60)
+        print("ГЛАВНОЕ МЕНЮ")
+        print("Выберите необходимый пункт меню:")
         print("1. Получить информацию о транзакциях из JSON-файла")
         print("2. Получить информацию о транзакциях из CSV-файла")
         print("3. Получить информацию о транзакциях из XLSX-файла")
         print("4. Выход")
-        print("=" * 50)
+        print("=" * 60)
 
         choice = input("Ваш выбор (1-4): ").strip()
+        debug_print(f"Выбор пользователя в главном меню: {choice}")
 
-        if choice == "1":
-            process_file_type("json")
-        elif choice == "2":
-            process_file_type("csv")
-        elif choice == "3":
-            process_file_type("excel")
-        elif choice == "4":
-            print("\nВыход из программы. До свидания!")
-            logger.info("Завершение работы банковского виджета")
+        if choice == "4":
+            debug_print("Пользователь выбрал выход")
+            print("\n" + "=" * 60)
+            print("ВЫХОД ИЗ ПРОГРАММЫ")
+            print("Спасибо за использование!")
+            print("=" * 60)
+            break
+
+        if choice not in ["1", "2", "3"]:
+            print("\n❌ Неверный выбор. Пожалуйста, выберите 1, 2, 3 или 4.")
+            continue
+
+        # Загрузка транзакций
+        debug_print(f"Загрузка транзакций для выбора {choice}")
+        transactions = load_transactions(choice, base_dir)
+
+        if not transactions:
+            print("\n❌ Не удалось загрузить транзакции. Файл пуст или не найден.")
+            print("Убедитесь, что файлы находятся в папке data/")
+            continue
+
+        print(f"\n✓ Загружено {len(transactions)} транзакций")
+
+        # Обработка транзакций
+        debug_print("Переход к обработке транзакций")
+        process_transactions(transactions)
+
+        debug_print("Возврат в главное меню")
+
+        # Спросить, хочет ли пользователь продолжить
+        print("\n" + "=" * 60)
+        if not ask_yes_no_question("Хотите обработать другой файл?"):
+            debug_print("Пользователь отказался от продолжения")
+            print("\n" + "=" * 60)
+            print("ВЫХОД ИЗ ПРОГРАММЫ")
+            print("Спасибо за использование!")
+            print("=" * 60)
             break
         else:
-            print("\nНеверный выбор. Пожалуйста, выберите от 1 до 4.")
+            debug_print("Пользователь выбрал продолжение")
+
+    debug_print("=" * 60)
+    debug_print("ЗАВЕРШЕНИЕ ПРОГРАММЫ")
+    debug_print("=" * 60)
 
 
 if __name__ == "__main__":
+    DEBUG_MODE = False
     main()

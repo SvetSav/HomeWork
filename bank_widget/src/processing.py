@@ -115,3 +115,28 @@ if __name__ == "__main__":
         print(f"   {index}. {state_icon} ID: {operation['id']}, Дата: {operation['date'][:10]}")
 
     print("\n Функции работают корректно!")
+
+
+def process_bank_search(transactions: List[Dict[str, Any]], keyword: str) -> List[Dict[str, Any]]:
+    """
+    Фильтрует транзакции по ключевому слову в описании.
+
+    Args:
+        transactions: Список транзакций
+        keyword: Ключевое слово для поиска
+
+    Returns:
+        Отфильтрованный список транзакций
+    """
+    if not transactions or not keyword:
+        return transactions
+
+    keyword_lower = keyword.lower()
+    filtered = []
+
+    for transaction in transactions:
+        description = transaction.get('description', '')
+        if isinstance(description, str) and keyword_lower in description.lower():
+            filtered.append(transaction)
+
+    return filtered
