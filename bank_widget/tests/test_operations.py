@@ -3,7 +3,9 @@
 """
 
 import logging
-import re  # <-- ДОБАВИТЬ ЭТОТ ИМПОРТ
+import os
+import re
+import sys
 from typing import Any
 from typing import Dict
 from typing import List
@@ -11,10 +13,13 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
-from src.operations import count_transactions_by_category
-from src.operations import filter_transactions_by_currency
-from src.operations import format_transaction_for_display
-from src.operations import search_transactions_by_description
+from operations import count_transactions_by_category
+from operations import filter_transactions_by_currency
+from operations import format_transaction_for_display
+from operations import search_transactions_by_description
+
+# Добавляем путь к src перед импортами из src
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
 class TestOperations:
@@ -189,7 +194,7 @@ class TestOperations:
 
 def test_operations_logger_created() -> None:
     """Тест создания логгера для модуля operations."""
-    from src.operations import logger
+    from operations import logger  # Импорт внутри функции, чтобы избежать циклических зависимостей
 
     assert logger.name == "bank_widget.operations"
     assert logger.level == logging.DEBUG

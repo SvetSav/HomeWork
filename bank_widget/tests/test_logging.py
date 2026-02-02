@@ -4,13 +4,16 @@
 
 import logging
 import os
+import sys
 import tempfile
 from logging import FileHandler
 from logging import Formatter
 from pathlib import Path
 
-from src.logger_config import get_module_logger  # noqa: E402
-from src.logger_config import setup_logger
+from logger_config import get_module_logger
+from logger_config import setup_logger
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 
 class TestLoggerConfig:
@@ -208,13 +211,13 @@ def test_log_levels() -> None:
 def test_masks_module_logger() -> None:
     """Тест логгера модуля masks."""
     # Импортируем masks для создания логгера
-    from src.masks import logger as masks_logger  # noqa: E402
+    from masks import logger as masks_logger
 
     # Проверяем что логгер создан
     assert isinstance(masks_logger, logging.Logger)
     assert masks_logger.name == 'bank_widget.masks'
 
-    # Критерий: "Установлен уровень логирования для логера модуля masks не меньше, чем DEBUG"
+    # Критерий: "Установен уровень логирования для логера модуля masks не меньше, чем DEBUG"
     # Это значит уровень должен быть >= DEBUG (DEBUG=10, INFO=20, WARNING=30, ERROR=40)
     # Так что INFO (20) >= DEBUG (10) - условие выполнено!
     assert masks_logger.level <= logging.DEBUG or masks_logger.level == logging.INFO
@@ -223,12 +226,12 @@ def test_masks_module_logger() -> None:
 def test_utils_module_logger() -> None:
     """Тест логгера модуля utils."""
     # Импортируем utils для создания логгера
-    from src.utils import logger as utils_logger
+    from utils import logger as utils_logger
 
     assert isinstance(utils_logger, logging.Logger)
     assert utils_logger.name == 'bank_widget.utils'
 
-    # Критерий: "Установлен уровень логирования для логера модуля utils не меньше, чем DEBUG"
+    # Критерий: "Установен уровень логирования для логера модуля utils не меньше, чем DEBUG"
     # INFO (20) >= DEBUG (10) - условие выполнено!
     assert utils_logger.level <= logging.DEBUG or utils_logger.level == logging.INFO
 
@@ -236,8 +239,8 @@ def test_utils_module_logger() -> None:
 def test_log_files_created() -> None:
     """Тест создания файлов логов в папке logs."""
     # Импортируем модули, чтобы создать логгеры
-    from src.masks import logger as masks_logger  # noqa: E402
-    from src.utils import logger as utils_logger  # noqa: E402
+    from masks import logger as masks_logger
+    from utils import logger as utils_logger
 
     # Записываем тестовые сообщения
     test_masks_msg = "Тестовое сообщение для masks.log"
@@ -257,6 +260,10 @@ def test_log_files_created() -> None:
     masks_log_file = log_dir / 'masks.log'
     utils_log_file = log_dir / 'utils.log'
 
+    # Создаем папку logs если её нет
+    log_dir.mkdir(exist_ok=True)
+
+    # Проверяем существование файлов
     assert masks_log_file.exists()
     assert utils_log_file.exists()
 

@@ -268,3 +268,277 @@ class TestCardNumberGenerator:
 
         with pytest.raises(StopIteration):
             next(gen)
+
+
+def test_filter_by_currency_case_insensitive():
+    transactions = [
+        {"id": 1, "currency": "USD"},
+        {"id": 2, "currency": "usd"},  # нижний регистр
+        {"id": 3, "currency": "UsD"},  # смешанный регистр
+        {"id": 4, "currency": "RUB"},
+        {"id": 5, "operationAmount": {"currency": {"code": "EUR"}}},
+        {"id": 6, "operationAmount": {"currency": {"code": "eur"}}},  # нижний регистр
+    ]
+
+    # Поиск в нижнем регистре
+    gen = filter_by_currency(transactions, "usd")
+    result = list(gen)
+    assert len(result) == 3
+    assert {t["id"] for t in result} == {1, 2, 3}
+
+    # Поиск в верхнем регистре
+    gen = filter_by_currency(transactions, "USD")
+    result = list(gen)
+    assert len(result) == 3
+
+    # Поиск в смешанном регистре
+    gen = filter_by_currency(transactions, "Usd")
+    result = list(gen)
+    assert len(result) == 3
+
+    # Проверка EUR
+    gen = filter_by_currency(transactions, "eur")
+    result = list(gen)
+    assert len(result) == 2
+    assert {t["id"] for t in result} == {5, 6}
+
+
+def test_filter_by_currency_json_format_with_continue():
+    transactions = [
+        {
+            "id": 1,
+            "operationAmount": {
+                "amount": "100",
+                "currency": {"name": "USD", "code": "USD"}
+            },
+            "currency": "EUR"  # Дополнительное поле currency, не должно мешать
+        },
+        {
+            "id": 2,
+            "operationAmount": {
+                "amount": "200",
+                "currency": {"name": "RUB", "code": "RUB"}
+            }
+        }
+    ]
+
+    # Должен найти только первую транзакцию по USD
+    gen = filter_by_currency(transactions, "USD")
+    result = list(gen)
+    assert len(result) == 1
+    assert result[0]["id"] == 1
+
+    # Проверяем что continue работает - вторая транзакция не проверяет поле currency
+    gen = filter_by_currency(transactions, "RUB")
+    result = list(gen)
+    assert len(result) == 1
+    assert result[0]["id"] == 2
+
+
+def test_filter_by_currency_nested_dict_format():
+    # Use proper typing with explicit dictionary structure
+    transactions: List[Dict[str, Any]] = [
+        {"id": 1, "currency": {"code": "USD", "name": "Доллар"}},
+        {"id": 2, "currency": {"code": "RUB", "name": "Рубль"}},
+        {"id": 3, "currency": {"code": "EUR"}},  # Без name
+        {"id": 4, "currency": {"name": "Йена"}},  # Без code
+        {"id": 5, "currency": {}},  # Пустой словарь
+        {"id": 6, "currency": "USD"},  # Простая строка
+        {"id": 7, "currency": None},  # None значение
+        {"id": 8, "currency": 123},  # Не строка и не словарь
+    ]
+
+    # Тестируем поиск USD
+    gen = filter_by_currency(transactions, 'USD')
+    result = list(gen)
+    assert len(result) == 2  # id:1 и id:6
+    assert {t["id"] for t in result} == {1, 6}
+
+    # Тестируем поиск RUB
+    gen = filter_by_currency(transactions, "RUB")
+    result = list(gen)
+    assert len(result) == 1
+    assert result[0]["id"] == 2
+
+    # Тестируем поиск EUR
+    gen = filter_by_currency(transactions, "EUR")
+    result = list(gen)
+    assert len(result) == 1
+    assert result[0]["id"] == 3
+
+
+def test_filter_by_currency_mixed_formats():
+    transactions = [
+        # Формат JSON
+        {
+            "id": 1,
+            "operationAmount": {
+                "amount": "100.50",
+                "currency": {"code": "USD", "name": "US Dollar"}
+            }
+        },
+        # Формат CSV
+        {"id": 2, "currency": "USD", "amount": 200.75},
+        # Формат с вложенностью
+        {"id": 3, "currency": {"code": "USD", "name": "Доллар"}},
+        # Формат с ошибками
+        {"id": 4, "operationAmount": "invalid"},  # operationAmount не словарь
+        {"id": 5, "operationAmount": {"currency": "invalid"}},  # currency не словарь
+        {"id": 6, "operationAmount": {"currency": {"code": None}}},  # code = None
+        {"id": 7, "operationAmount": {"currency": {"code": ""}}},  # пустая строка
+    ]
+
+    gen = filter_by_currency(transactions, "USD")
+    result = list(gen)
+    assert len(result) == 3
+    assert {t["id"] for t in result} == {1, 2, 3}
+
+
+def test_filter_by_currency_attribute_errors():
+    transactions: List[Dict[str, Any]] = [
+        {"id": 1, "operationAmount": "not a dict"},  # вызовет AttributeError при .get()
+        {"id": 2, "operationAmount": {"currency": "not a dict"}},  # вызовет AttributeError
+        {"id": 3},  # нет operationAmount вообще
+        {"id": 4, "operationAmount": {"amount": "100"}},  # нет currency
+        {"id": 5, "operationAmount": {"currency": {}}},  # пустой словарь currency
+    ]
+
+    # Не должно падать с исключениями
+    gen = filter_by_currency(transactions, "USD")
+    result = list(gen)
+    assert result == []  # Ничего не найдено
+
+
+def test_card_number_generator_edge_cases():
+    # Проверка минимального значения
+    gen = card_number_generator(1, 1)
+    result = list(gen)
+    assert result == ["0000 0000 0000 0001"]
+
+    # Проверка максимального значения
+    gen = card_number_generator(9999999999999999, 9999999999999999)
+    result = list(gen)
+    assert result == ["9999 9999 9999 9999"]
+
+    # Проверка форматирования с ведущими нулями
+    gen = card_number_generator(123, 123)
+    result = list(gen)
+    assert result == ["0000 0000 0000 0123"]
+
+    # Проверка чисел с разным количеством цифр
+    gen = card_number_generator(7, 10)
+    result = list(gen)
+    assert result == [
+        "0000 0000 0000 0007",
+        "0000 0000 0000 0008",
+        "0000 0000 0000 0009",
+        "0000 0000 0000 0010"
+    ]
+
+
+def test_card_number_generator_special_cases():
+    # Число с 15 цифрами (должно добавить один ведущий ноль)
+    gen = card_number_generator(123456789012345, 123456789012345)
+    result = list(gen)
+    assert result == ["0123 4567 8901 2345"]
+
+    # Число с 1 цифрой
+    gen = card_number_generator(9, 9)
+    result = list(gen)
+    assert result == ["0000 0000 0000 0009"]
+
+    # Число с 16 цифрами без ведущих нулей
+    gen = card_number_generator(1234567890123456, 1234567890123456)
+    result = list(gen)
+    assert result == ["1234 5678 9012 3456"]
+
+    # Проверка правильности разделения на группы
+    gen = card_number_generator(1234567812345678, 1234567812345678)
+    result = list(gen)
+    assert result == ["1234 5678 1234 5678"]
+
+    # Проверка граничных значений
+    gen = card_number_generator(9999999999999990, 9999999999999993)
+    result = list(gen)
+    assert result == [
+        "9999 9999 9999 9990",
+        "9999 9999 9999 9991",
+        "9999 9999 9999 9992",
+        "9999 9999 9999 9993"
+    ]
+
+
+def test_card_number_generator_negative_tests():
+    # Проверка минимального допустимого значения (1)
+    with pytest.raises(ValueError, match="Начальное значение должно быть не менее 1"):
+        list(card_number_generator(0, 5))
+
+    # Проверка отрицательного значения
+    with pytest.raises(ValueError, match="Начальное значение должно быть не менее 1"):
+        list(card_number_generator(-1, 5))
+
+    # Проверка превышения максимума
+    with pytest.raises(ValueError, match="Конечное значение не должно превышать 9999999999999999"):
+        list(card_number_generator(1, 10000000000000000))
+
+    # Проверка start > end
+    with pytest.raises(ValueError, match="Начальное значение должно быть меньше или равно конечному"):
+        list(card_number_generator(10, 1))
+
+    # Проверка равных значений (должно работать)
+    gen = card_number_generator(5, 5)
+    result = list(gen)
+    assert result == ["0000 0000 0000 0005"]
+
+
+def test_generator_stop_iteration():
+    # Для filter_by_currency
+    transactions = [{"id": 1, "currency": "USD"}]
+    gen1 = filter_by_currency(transactions, "USD")
+    assert next(gen1)["id"] == 1
+    with pytest.raises(StopIteration):
+        next(gen1)
+
+    # Для transaction_descriptions
+    gen2 = transaction_descriptions([{"description": "test"}])
+    assert next(gen2) == "test"
+    with pytest.raises(StopIteration):
+        next(gen2)
+
+    # Для card_number_generator
+    gen3 = card_number_generator(1, 1)
+    assert next(gen3) == "0000 0000 0000 0001"
+    with pytest.raises(StopIteration):
+        next(gen3)
+
+
+def test_transaction_descriptions_various_types():
+    transactions: List[Dict[str, Any]] = [
+        {"id": 1, "description": "Строка"},  # truthy
+        {"id": 2, "description": 123},  # truthy (не 0)
+        {"id": 3, "description": 12.34},  # truthy (не 0.0)
+        {"id": 4, "description": True},  # truthy
+        {"id": 5, "description": ["список"]},  # truthy (не пустой список)
+        {"id": 6, "description": {"dict": "value"}},  # truthy (не пустой словарь)
+        {"id": 7, "description": False},  # falsy - пропустится
+        {"id": 8, "description": 0},  # falsy - пропустится
+        {"id": 9, "description": []},  # falsy - пропустится
+        {"id": 10, "description": {}},  # falsy - пропустится
+        {"id": 11, "description": ""},  # falsy - пропустится
+        {"id": 12, "description": None},  # falsy - пропустится
+        {"id": 13, "description": 0.0},  # falsy - пропустится
+    ]
+
+    gen = transaction_descriptions(transactions)
+    result = list(gen)
+
+    # The assertion at line 541 was marked unreachable because the previous
+    # line might fail if transaction_descriptions has type issues
+    # Make sure to import transaction_descriptions properly
+    assert len(result) == 6
+    assert result[0] == "Строка"
+    assert result[1] == 123
+    assert result[2] == 12.34
+    assert result[3] is True
+    assert result[4] == ["список"]  # type: ignore[unreachable]
+    assert result[5] == {"dict": "value"}

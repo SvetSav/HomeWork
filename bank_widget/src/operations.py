@@ -38,6 +38,32 @@ if not logger.handlers:
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+# Импортируем необходимые модули с обработкой возможных ошибок импорта
+try:
+    from generators import filter_by_currency
+    GENERATORS_AVAILABLE = True
+except ImportError:
+    try:
+        from .generators import filter_by_currency
+        GENERATORS_AVAILABLE = True
+    except ImportError:
+        GENERATORS_AVAILABLE = False
+        logger.warning("Модуль generators не найден. Функция filter_transactions_by_currency может работать "
+                       "некорректно.")
+
+try:
+    from widget import get_date
+    from widget import mask_account_card
+    WIDGET_AVAILABLE = True
+except ImportError:
+    try:
+        from .widget import get_date
+        from .widget import mask_account_card
+        WIDGET_AVAILABLE = True
+    except ImportError:
+        WIDGET_AVAILABLE = False
+        logger.warning("Модуль widget не найден. Функция format_transaction_for_display может работать некорректно.")
+
 
 def search_transactions_by_description(
     transactions: List[Dict[str, Any]],
@@ -176,7 +202,9 @@ def filter_transactions_by_currency(
     """
     logger.info(f"Фильтрация транзакций по валюте: {currency}")
 
-    from .generators import filter_by_currency
+    if not GENERATORS_AVAILABLE:
+        logger.error("Модуль generators не доступен. Невозможно выполнить фильтрацию.")
+        return []
 
     result = list(filter_by_currency(transactions, currency))
     logger.info(f"Найдено {len(result)} транзакций в валюте {currency}")
@@ -194,8 +222,9 @@ def format_transaction_for_display(transaction: Dict[str, Any]) -> str:
         Отформатированная строка
     """
     try:
-        from .widget import get_date
-        from .widget import mask_account_card
+        # Проверяем доступность модуля widget
+        if not WIDGET_AVAILABLE:
+            raise ImportError("Модуль widget не доступен")
 
         # Получаем дату
         date_str = get_date(transaction.get('date', ''))
@@ -239,6 +268,22 @@ def format_transaction_for_display(transaction: Dict[str, Any]) -> str:
 
         return result
 
+    except ImportError as e:
+        logger.error(f"Не удалось импортировать модуль widget: {e}")
+        # Если не удалось импортировать модуль, используем упрощенное форматирование
+        description = transaction.get('description', 'Нет описания')
+        date_str = transaction.get('date', '')
+        amount = transaction.get('operationAmount', {}).get('amount', '0')
+        currency_info = transaction.get('operationAmount', {}).get('currency', {})
+        currency_name = currency_info.get('name', '')
+
+        # Простое форматирование даты, если она в ISO формате
+        if 'T' in date_str:
+            date_parts = date_str.split('T')[0].split('-')
+            if len(date_parts) >= 3:
+                date_str = f"{date_parts[2]}.{date_parts[1]}.{date_parts[0]}"
+
+        return f"{date_str} {description}\nСумма: {amount} {currency_name}"
     except Exception as e:
         logger.error(f"Ошибка форматирования транзакции: {e}")
         return f"Ошибка при форматировании транзакции: {transaction.get('id', 'N/A')}"

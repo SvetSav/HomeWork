@@ -3,12 +3,15 @@
 """
 
 import os
+import sys
 import tempfile
 from typing import Any
 from typing import Callable
 
 import pytest
-from src.decorators import log  # noqa: E402
+from decorators import log
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
 class TestLogDecorator:
@@ -16,7 +19,7 @@ class TestLogDecorator:
 
     def test_log_to_console_success(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест логирования успешного выполнения в консоль."""
-        @log()
+        @log()  # type: ignore
         def add(a: int, b: int) -> int:
             return a + b
 
@@ -31,7 +34,7 @@ class TestLogDecorator:
 
     def test_log_to_console_error(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест логирования ошибки в консоль."""
-        @log()
+        @log()  # type: ignore
         def divide(a: int, b: int) -> float:
             return a / b
 
@@ -51,7 +54,7 @@ class TestLogDecorator:
             tmp_filename = tmp.name
 
         try:
-            @log(filename=tmp_filename)
+            @log(filename=tmp_filename)  # type: ignore
             def multiply(a: int, b: int) -> int:
                 return a * b
 
@@ -77,7 +80,7 @@ class TestLogDecorator:
             tmp_filename = tmp.name
 
         try:
-            @log(filename=tmp_filename)
+            @log(filename=tmp_filename)  # type: ignore
             def get_item(lst: list, index: int) -> Any:
                 return lst[index]
 
@@ -98,7 +101,7 @@ class TestLogDecorator:
 
     def test_log_with_keyword_arguments(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест логирования функции с keyword arguments."""
-        @log()
+        @log()  # type: ignore
         def greet(name: str, greeting: str = "Hello") -> str:
             return f"{greeting}, {name}!"
 
@@ -113,7 +116,7 @@ class TestLogDecorator:
 
     def test_log_with_no_arguments(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест логирования функции без аргументов."""
-        @log()
+        @log()  # type: ignore
         def get_pi() -> float:
             return 3.14159
 
@@ -128,7 +131,7 @@ class TestLogDecorator:
 
     def test_log_preserves_function_metadata(self) -> None:
         """Тест, что декоратор сохраняет метаданные функции."""
-        @log()
+        @log()  # type: ignore
         def example_func(x: int, y: int) -> int:
             """Пример функции для теста."""
             return x + y
@@ -141,7 +144,7 @@ class TestLogDecorator:
 
     def test_multiple_calls_logging(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест логирования нескольких вызовов функции."""
-        @log()
+        @log()  # type: ignore
         def increment(x: int) -> int:
             return x + 1
 
@@ -161,7 +164,7 @@ class TestLogDecorator:
         class CustomError(Exception):
             pass
 
-        @log()
+        @log()  # type: ignore
         def raise_custom_error() -> None:
             raise CustomError("Что-то пошло не так")
 

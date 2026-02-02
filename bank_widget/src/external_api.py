@@ -48,7 +48,18 @@ def get_exchange_rate(currency: str) -> Optional[float]:
 
         if data.get("success", False):
             rates = data.get("rates", {})
-            return rates.get(BASE_CURRENCY)
+            rate_value = rates.get(BASE_CURRENCY)
+
+            # Явно преобразуем к float
+            if rate_value is None:
+                return None
+
+            # Пробуем преобразовать к float
+            try:
+                return float(rate_value)
+            except (ValueError, TypeError):
+                print(f"Invalid rate value: {rate_value}")
+                return None
         else:
             print(f"API error: {data.get('error', {}).get('info', 'Unknown error')}")
             return None
@@ -82,7 +93,8 @@ def convert_amount_to_rub(transaction: Dict[str, Any]) -> Optional[float]:
         # Преобразуем сумму в Decimal для точности
         try:
             amount_decimal = Decimal(str(amount))
-        except (ValueError, TypeError, InvalidOperation):
+        except (ValueError, TypeError, InvalidOperation) as e:
+            print(f"Error converting amount to Decimal: {e}")
             return None
 
         print(f"DEBUG: amount_decimal = {amount_decimal}")  # Отладка

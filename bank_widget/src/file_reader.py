@@ -10,7 +10,7 @@ from typing import List
 from typing import Optional
 from typing import cast
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 # Создаем логгер для модуля file_reader
 logger = logging.getLogger('bank_widget.file_reader')
@@ -61,11 +61,37 @@ def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
         'сумма': 'amount',
         'валюта': 'currency',
         'id': 'id',
-        'идентификатор': 'id'
+        'идентификатор': 'id',
+        'operationamount': 'amount',  # Для JSON данных
+        'operationamount.amount': 'amount',
+        'operationamount.currency': 'currency',
+        'operationamount.currency.name': 'currency',
+        'operationamount.currency.code': 'currency_code'  # Оставляем отдельно
     }
 
+    # Удаляем дублирующиеся колонки перед переименованием
+    # Создаем словарь для отслеживания уникальных колонок
+    unique_columns = {}
+    columns_to_rename = {}
+
+    for old_name in df.columns:
+        # Определяем новое имя
+        new_name = column_mapping.get(old_name, old_name)
+
+        # Если новое имя уже существует, добавляем суффикс
+        if new_name in unique_columns:
+            suffix = 1
+            while f"{new_name}_{suffix}" in unique_columns:
+                suffix += 1
+            new_name = f"{new_name}_{suffix}"
+
+        unique_columns[new_name] = True
+        columns_to_rename[old_name] = new_name
+
     # Переименовываем колонки
-    df.rename(columns=column_mapping, inplace=True)
+    df.rename(columns=columns_to_rename, inplace=True)
+
+    logger.debug(f"Колонки после переименования: {df.columns.tolist()}")
 
     return df
 
@@ -92,13 +118,13 @@ def read_csv_file(file_path: str) -> List[Dict[str, Any]]:
             logger.error(f"CSV файл не найден: {file_path}")
             raise FileNotFoundError(f"Файл не найден: {file_path}")
 
-        # Пробуем разные кодировки
+        # Пробуем разные кодировки с разделителем ';'
         encodings = ['utf-8', 'cp1251', 'windows-1251', 'latin1']
 
         for encoding in encodings:
             try:
-                logger.debug(f"Попытка чтения с кодировкой {encoding}")
-                df = pd.read_csv(file_path, encoding=encoding)
+                logger.debug(f"Попытка чтения с кодировкой {encoding}, разделитель ';'")
+                df = pd.read_csv(file_path, encoding=encoding, delimiter=';')
 
                 # Нормализуем названия колонок
                 df = normalize_column_names(df)
@@ -116,43 +142,290 @@ def read_csv_file(file_path: str) -> List[Dict[str, Any]]:
                 transactions_raw = df.to_dict('records')
                 transactions = cast(List[Dict[str, Any]], transactions_raw)
 
-                logger.info(f"Успешно прочитано {len(transactions)} транзакций из CSV файла: {file_path}")
+                # Полный словарь маппинга локализованных названий на коды валют
+                currency_name_to_code = {
+                    'Sol': 'PEN', 'Peso': 'COP', 'Shilling': 'TZS', 'Rupiah': 'IDR',
+                    'Yuan Renminbi': 'CNY', 'Hryvnia': 'UAH', 'Koruna': 'CZK',
+                    'Euro': 'EUR', 'Ruble': 'RUB', 'Krona': 'SEK', 'Yen': 'JPY',
+                    'Zloty': 'PLN', 'Dollar': 'USD', 'Real': 'BRL', 'Dinar': 'TND',
+                    'Franc': 'XAF', 'Quetzal': 'GTQ', 'Baht': 'THB', 'Ariary': 'MGA',
+                    'Rial': 'QAR', 'Krone': 'NOK', 'Ringgit': 'MYR', 'Pula': 'BWP',
+                    'Tenge': 'KZT', 'Won': 'KPW', 'Guilder': 'ANG', 'Shekel': 'ILS',
+                    'Dram': 'AMD', 'Dong': 'VND', 'Dirham': 'MAD', 'Lek': 'ALL',
+                    'Dalasi': 'GMD', 'Kwanza': 'AOA', 'Guarani': 'PYG', 'Birr': 'ETB',
+                    'Kwacha': 'ZMW', 'Denar': 'MKD', 'Colon': 'CRC', 'Lempira': 'HNL',
+                    'Tugrik': 'MNT', 'Kyat': 'MMK', 'Balboa': 'PAB', 'Gourde': 'HTG',
+                    'Riels': 'KHR', 'Bolivar': 'VEF', 'Litas': 'LTL', 'Cordoba': 'NIO',
+                    'Rupee': 'PKR', 'Rand': 'ZAR', 'Leu': 'MDL', 'Lilangeni': 'SZL',
+                    'Forint': 'HUF', 'Kip': 'LAK', 'Cedi': 'GHS', 'Somoni': 'TJS',
+                    'Ngultrum': 'BTN', 'Som': 'KGS', 'Boliviano': 'BOB', 'Manat': 'AZN',
+                    'Marka': 'BAM', 'Lari': 'GEL', 'Tala': 'WST', 'Afghani': 'AFN', 'Kuna': 'HRK',
+                    'Lev': 'BGN', 'руб.': 'RUB', 'рубль': 'RUB', '₽': 'RUB',
+                    '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY'
+                }
 
+                # Дополнительные уточнения для неоднозначных названий
+                # Если нужно различать песо разных стран, можно использовать контекст
+                # или дополнительные данные, но здесь просто оставляем COP как наиболее частый
+
+                for transaction in transactions:
+                    # УНИФИЦИРОВАННАЯ ОБРАБОТКА ВАЛЮТЫ:
+                    # 1. Если есть currency_code (код валюты), используем его - это уже унифицировано
+                    if 'currency_code' in transaction and transaction['currency_code']:
+                        transaction['currency'] = str(transaction['currency_code']).strip()
+
+                    # 2. Если нет currency_code, но есть currency_name (локализованное название)
+                    elif 'currency_name' in transaction and transaction['currency_name']:
+                        # Получаем локализованное название
+                        localized_name = str(transaction['currency_name']).strip()
+
+                        # Ищем в маппинге
+                        if localized_name in currency_name_to_code:
+                            transaction['currency'] = currency_name_to_code[localized_name]
+                        else:
+                            # Если не нашли, оставляем как есть, но логируем предупреждение
+                            transaction['currency'] = localized_name
+                            logger.warning(f"Неизвестная валюта: {localized_name}")
+
+                    # 3. Если есть currency, но это может быть локализованное название
+                    elif 'currency' in transaction and transaction['currency']:
+                        currency_str = str(transaction['currency']).strip()
+
+                        # Проверяем, не является ли это уже кодом валюты (3 буквы)
+                        if len(currency_str) == 3 and currency_str.isalpha() and currency_str.isupper():
+                            # Это уже код, оставляем как есть
+                            transaction['currency'] = currency_str
+                        elif currency_str in currency_name_to_code:
+                            # Это локализованное название, преобразуем в код
+                            transaction['currency'] = currency_name_to_code[currency_str]
+                        else:
+                            # Неизвестно что, оставляем как есть
+                            transaction['currency'] = currency_str
+
+                    # 4. Если ничего нет, используем 'RUB' по умолчанию
+                    else:
+                        transaction['currency'] = 'RUB'  # Российский рубль по умолчанию
+
+                    # Удаляем временные поля, если они есть
+                    for field in ['currency_name', 'currency_code']:
+                        if field in transaction:
+                            del transaction[field]
+
+                    # Также форматируем суммы если нужно
+                    if 'amount' in transaction and transaction['amount'] is not None:
+                        try:
+                            amount_str = str(transaction['amount'])
+                            amount_str = amount_str.replace(',', '.')
+                            amount_num = float(amount_str)
+                            if amount_num.is_integer():
+                                transaction['amount'] = int(amount_num)
+                            else:
+                                transaction['amount'] = amount_num
+                        except (ValueError, TypeError) as e:
+                            logger.debug(f"Не удалось преобразовать сумму {transaction.get('amount')}: {e}")
+                            pass
+
+                logger.info(f"Успешно прочитано {len(transactions)} транзакций из CSV файла: {file_path}")
                 return transactions
 
             except UnicodeDecodeError:
                 logger.debug(f"Кодировка {encoding} не подошла")
                 continue
+            except pd.errors.EmptyDataError:
+                logger.warning(f"CSV файл полностью пуст: {file_path}")
+                return []
             except Exception as e:
                 logger.debug(f"Ошибка при чтении с кодировкой {encoding}: {e}")
                 continue
 
-        # Если ни одна кодировка не подошла
-        logger.error(f"Не удалось прочитать CSV файл ни с одной из кодировок: {file_path}")
-        raise ValueError(f"Не удалось прочитать CSV файл: {file_path}")
-
-    except pd.errors.EmptyDataError:
-        logger.error(f"CSV файл пуст или не содержит данных: {file_path}")
-        return []
-    except pd.errors.ParserError as e:
-        logger.error(f"Ошибка парсинга CSV файла {file_path}: {e}")
-        # Попробуем читать с другими параметрами
+        # Если ни одна кодировка с разделителем ';' не подошла, пробуем без разделителя
         try:
-            df = pd.read_csv(file_path, on_bad_lines='warn')
+            logger.debug("Попытка чтения без указания разделителя")
+            df = pd.read_csv(file_path, encoding='utf-8')
             df = normalize_column_names(df)
+
             if df.empty:
+                logger.warning(f"CSV файл пуст: {file_path}")
                 return []
-            df = df.where(pd.notnull(df), None)  # type: ignore[call-overload]
+
+            df = df.fillna(pd.NA)
             transactions_raw = df.to_dict('records')
             transactions = cast(List[Dict[str, Any]], transactions_raw)
-            logger.info(f"Прочитано {len(transactions)} транзакций (с пропуском ошибок)")
+
+            # Та же обработка валюты с полным словарем
+            currency_name_to_code = {
+                'Sol': 'PEN', 'Peso': 'COP', 'Shilling': 'TZS', 'Rupiah': 'IDR',
+                'Yuan Renminbi': 'CNY', 'Hryvnia': 'UAH', 'Koruna': 'CZK',
+                'Euro': 'EUR', 'Ruble': 'RUB', 'Krona': 'SEK', 'Yen': 'JPY',
+                'Zloty': 'PLN', 'Dollar': 'USD', 'Real': 'BRL', 'Dinar': 'TND',
+                'Franc': 'XAF', 'Quetzal': 'GTQ', 'Baht': 'THB', 'Ariary': 'MGA',
+                'Rial': 'QAR', 'Krone': 'NOK', 'Won': 'KRW', 'Afghani': 'AFN',
+                'Ringgit': 'MYR', 'Pula': 'BWP', 'Tenge': 'KZT',
+                'Guilder': 'ANG', 'Shekel': 'ILS', 'Dram': 'AMD', 'Dong': 'VND',
+                'Dirham': 'MAD', 'Lek': 'ALL', 'Dalasi': 'GMD', 'Kwanza': 'AOA',
+                'Guarani': 'PYG', 'Birr': 'ETB', 'Kwacha': 'ZMW', 'Denar': 'MKD',
+                'Colon': 'CRC', 'Lempira': 'HNL', 'Tugrik': 'MNT', 'Kyat': 'MMK',
+                'Balboa': 'PAB', 'Gourde': 'HTG', 'Riels': 'KHR', 'Bolivar': 'VEF',
+                'Litas': 'LTL', 'Cordoba': 'NIO', 'Rupee': 'PKR', 'Rand': 'ZAR',
+                'Leu': 'MDL', 'Lilangeni': 'SZL', 'Forint': 'HUF', 'Kip': 'LAK',
+                'Cedi': 'GHS', 'Somoni': 'TJS', 'Ngultrum': 'BTN', 'Som': 'KGS',
+                'Boliviano': 'BOB', 'Manat': 'AZN', 'Marka': 'BAM',
+                'Lari': 'GEL', 'Tala': 'WST', 'Kuna': 'HRK', 'Lev': 'BGN', 'руб.': 'RUB'
+            }
+
+            for transaction in transactions:
+                if 'currency_code' in transaction and transaction['currency_code']:
+                    transaction['currency'] = str(transaction['currency_code']).strip()
+                elif 'currency_name' in transaction and transaction['currency_name']:
+                    localized_name = str(transaction['currency_name']).strip()
+                    if localized_name in currency_name_to_code:
+                        transaction['currency'] = currency_name_to_code[localized_name]
+                    else:
+                        transaction['currency'] = localized_name
+                        logger.warning(f"Неизвестная валюта: {localized_name}")
+                elif 'currency' in transaction and transaction['currency']:
+                    currency_str = str(transaction['currency']).strip()
+                    if len(currency_str) == 3 and currency_str.isalpha() and currency_str.isupper():
+                        transaction['currency'] = currency_str
+                    elif currency_str in currency_name_to_code:
+                        transaction['currency'] = currency_name_to_code[currency_str]
+                    else:
+                        transaction['currency'] = currency_str
+                else:
+                    transaction['currency'] = 'RUB'
+
+                for field in ['currency_name', 'currency_code']:
+                    if field in transaction:
+                        del transaction[field]
+
+                if 'amount' in transaction and transaction['amount'] is not None:
+                    try:
+                        amount_str = str(transaction['amount'])
+                        amount_str = amount_str.replace(',', '.')
+                        amount_num = float(amount_str)
+                        if amount_num.is_integer():
+                            transaction['amount'] = int(amount_num)
+                        else:
+                            transaction['amount'] = amount_num
+                    except (ValueError, TypeError):
+                        pass
+
+            logger.info(f"Прочитано {len(transactions)} транзакций из CSV файла (без разделителя): {file_path}")
             return transactions
-        except Exception as parse_error:
-            logger.error(f"Не удалось прочитать CSV даже с пропуском ошибок: {parse_error}")
-            raise ValueError(f"Ошибка формата CSV файла: {file_path}")
+
+        except pd.errors.EmptyDataError:
+            logger.warning(f"CSV файл полностью пуст (без разделителя): {file_path}")
+            return []
+        except Exception as fallback_error:
+            logger.error(
+                f"Не удалось прочитать CSV файл ни с одной из кодировок: {file_path}, ошибка: {fallback_error}")
+            raise ValueError(f"Не удалось прочитать CSV файл: {file_path}")
+
+    except Exception as e:
+        logger.error(f"Неожиданная ошибка при чтении CSV файла {file_path}: {e}")
+        raise
+
+
+def _read_csv_alternative(file_path: str) -> List[Dict[str, Any]]:
+    """
+    Альтернативный способ чтения CSV файла с использованием встроенного модуля csv.
+
+    Args:
+        file_path: Путь к CSV файлу
+
+    Returns:
+        Список словарей с транзакциями
+    """
+    import csv
+
+    logger.info(f"Альтернативное чтение CSV файла: {file_path}")
+
+    transactions = []
+    encodings = ['utf-8', 'cp1251', 'windows-1251', 'latin1']
+
+    for encoding in encodings:
+        try:
+            with open(file_path, 'r', encoding=encoding, newline='') as csvfile:
+                # Пробуем разные разделители
+                for delimiter in [';', ',', '\t', '|']:
+                    try:
+                        csvfile.seek(0)  # Возвращаемся в начало файла
+                        # Создаем reader с текущим разделителем
+                        reader = csv.DictReader(csvfile, delimiter=delimiter)
+
+                        # Читаем все строки
+                        rows = list(reader)
+
+                        if not rows:
+                            logger.warning(f"CSV файл пуст (альтернативное чтение): {file_path}")
+                            return []
+
+                        # Нормализуем названия колонок в каждом ряду
+                        normalized_rows: List[Dict[str, Any]] = []
+                        for row in rows:
+                            normalized_row: Dict[str, Optional[str]] = {}
+                            for key, value in row.items():
+                                normalized_key = key.strip().lower()
+                                # Применяем маппинг как в normalize_column_names
+                                column_mapping = {
+                                    'статус': 'state',
+                                    'дата': 'date',
+                                    'описание': 'description',
+                                    'откуда': 'from',
+                                    'куда': 'to',
+                                    'сумма': 'amount',
+                                    'валюта': 'currency',
+                                    'id': 'id',
+                                    'идентификатор': 'id'
+                                }
+                                if normalized_key in column_mapping:
+                                    normalized_key = column_mapping[normalized_key]
+
+                                # Обработка значений
+                                if value is None or value == '':
+                                    normalized_row[normalized_key] = None
+                                else:
+                                    normalized_row[normalized_key] = value.strip()
+
+                            normalized_rows.append(normalized_row)
+
+                        transactions = normalized_rows
+
+                        # Добавляем валюту по умолчанию, если не указана
+                        for transaction in transactions:
+                            if 'currency' not in transaction or not transaction['currency']:
+                                transaction['currency'] = 'руб.'
+
+                            # Обработка суммы
+                            if 'amount' in transaction and transaction['amount'] is not None:
+                                try:
+                                    amount_str = str(transaction['amount'])
+                                    amount_str = amount_str.replace(',', '.')
+                                    amount_num = float(amount_str)
+                                    if amount_num.is_integer():
+                                        transaction['amount'] = int(amount_num)
+                                    else:
+                                        transaction['amount'] = amount_num
+                                except (ValueError, TypeError):
+                                    pass
+
+                        logger.info(f"Успешно прочитано {len(transactions)} транзакций альтернативным способом "
+                                    f"(кодировка: {encoding}, разделитель: {delimiter})")
+                        return transactions
+
+                    except csv.Error as e:
+                        logger.debug(f"Разделитель '{delimiter}' не подошел: {e}")
+                        continue
+
+        except UnicodeDecodeError:
+            logger.debug(f"Кодировка {encoding} не подошла (альтернативное чтение)")
+            continue
         except Exception as e:
-            logger.error(f"Неожиданная ошибка при чтении CSV файла {file_path}: {e}")
-            raise
+            logger.debug(f"Ошибка при чтении с кодировкой {encoding} (альтернативное чтение): {e}")
+            continue
+
+    # Если ни одна комбинация не подошла
+    raise ValueError(f"Не удалось прочитать CSV файл альтернативным способом: {file_path}")
 
 
 def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -169,6 +442,7 @@ def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Di
     Raises:
         FileNotFoundError: Если файл не найден
         ValueError: Если файл пуст или имеет неверный формат
+        :rtype: List[Dict[str, Any]]
     """
     logger.info(f"Начало чтения Excel файла: {file_path} (лист: {sheet_name})")
 
@@ -189,6 +463,11 @@ def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Di
 
         logger.debug(f"Excel файл прочитан, размер: {df.shape}")
 
+        # ОТЛАДКА: выводим колонки
+        logger.debug(f"Колонки в Excel файле: {df.columns.tolist()}")
+        if not df.empty:
+            logger.debug(f"Первые строки:\n{df.head()}")
+
         if df.empty:
             logger.warning(f"Excel файл пуст: {file_path}")
             return []
@@ -200,7 +479,42 @@ def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Di
         transactions_raw = df.to_dict('records')
         transactions = cast(List[Dict[str, Any]], transactions_raw)
 
+        # ДОБАВЛЕНО: Обработка валюты для Excel файла
+        for transaction in transactions:
+            # Если currency отсутствует или None, устанавливаем значение по умолчанию
+            if 'currency' not in transaction or transaction['currency'] is None:
+                # Проверяем другие возможные поля с валютой
+                if 'currency_code' in transaction and transaction['currency_code']:
+                    transaction['currency'] = transaction['currency_code']
+                elif 'currency_name' in transaction and transaction['currency_name']:
+                    transaction['currency'] = transaction['currency_name']
+                else:
+                    # Значение по умолчанию
+                    transaction['currency'] = 'RUB'
+
+            # Удаляем временные поля
+            for field in ['currency_name', 'currency_code']:
+                if field in transaction:
+                    del transaction[field]
+
+            # Обработка суммы
+            if 'amount' in transaction and transaction['amount'] is not None:
+                try:
+                    amount_str = str(transaction['amount'])
+                    amount_str = amount_str.replace(',', '.')
+                    amount_num = float(amount_str)
+                    if amount_num.is_integer():
+                        transaction['amount'] = int(amount_num)
+                    else:
+                        transaction['amount'] = amount_num
+                except (ValueError, TypeError):
+                    pass
+
         logger.info(f"Успешно прочитано {len(transactions)} транзакций из Excel файла: {file_path}")
+
+        # ОТЛАДКА: выводим первую транзакцию
+        if transactions:
+            logger.debug(f"Первая транзакция после обработки: {transactions[0]}")
 
         return transactions
 
@@ -223,6 +537,33 @@ def read_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[Di
                     df = df.where(pd.notnull(df), None)  # type: ignore[call-overload]
                     transactions_raw = df.to_dict('records')
                     transactions = cast(List[Dict[str, Any]], transactions_raw)
+
+                    # Та же обработка валюты
+                    for transaction in transactions:
+                        if 'currency' not in transaction or transaction['currency'] is None:
+                            if 'currency_code' in transaction and transaction['currency_code']:
+                                transaction['currency'] = transaction['currency_code']
+                            elif 'currency_name' in transaction and transaction['currency_name']:
+                                transaction['currency'] = transaction['currency_name']
+                            else:
+                                transaction['currency'] = 'RUB'
+
+                        for field in ['currency_name', 'currency_code']:
+                            if field in transaction:
+                                del transaction[field]
+
+                        if 'amount' in transaction and transaction['amount'] is not None:
+                            try:
+                                amount_str = str(transaction['amount'])
+                                amount_str = amount_str.replace(',', '.')
+                                amount_num = float(amount_str)
+                                if amount_num.is_integer():
+                                    transaction['amount'] = int(amount_num)
+                                else:
+                                    transaction['amount'] = amount_num
+                            except (ValueError, TypeError):
+                                pass
+
                     logger.info(f"Прочитано {len(transactions)} транзакций из первого листа '{sheet_names[0]}'")
                     return transactions
             except Exception as sheet_error:

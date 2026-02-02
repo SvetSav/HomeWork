@@ -8,9 +8,13 @@ import functools
 from typing import Any
 from typing import Callable
 from typing import Optional
+from typing import TypeVar
+from typing import cast
+
+F = TypeVar('F', bound=Callable[..., Any])
 
 
-def log(filename: Optional[str] = None) -> Callable:
+def log(filename: Optional[str] = None) -> Callable[[F], F]:
     """
     Декоратор для логирования работы функций.
 
@@ -33,7 +37,7 @@ def log(filename: Optional[str] = None) -> Callable:
         >>> divide(10, 2)  # Запишет в файл: "divide ok"
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Формируем строку с входными параметрами
@@ -76,6 +80,6 @@ def log(filename: Optional[str] = None) -> Callable:
                 # Пробрасываем исключение дальше
                 raise
 
-        return wrapper
+        return cast(F, wrapper)  # Явное приведение типа для mypy
 
     return decorator
