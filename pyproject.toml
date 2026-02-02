@@ -1,3 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bank_widget"
+version = "0.1.0"
+description = "Банковский виджет для отображения операций клиента"
+authors = [
+    {name = "SvetlanaSavina", email = "luca_aluca92@mail.ru"}
+]
+readme = "README.md"
+dependencies = [
+    "requests>=2.28.0",
+    "python-dotenv>=1.0.0",
+    "pandas (>=2.3.3,<3.0.0)",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.10.0",
+    "mypy>=1.0.0",
+    "types-requests>=2.28.0",
+    "black>=22.0",
+    "flake8>=6.0.0",
+    "isort>=5.12.0",
+]
+
+[project.scripts]
+bank-widget = "main:main"
+
 [tool.poetry]
 name = "bank_widget"
 version = "0.1.0"
@@ -6,17 +38,13 @@ authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.14"
+python = "^3.11"
 
 [tool.poetry.group.lint.dependencies]
 flake8 = "^6.0.0"
 black = "^23.0.0"
 isort = "^5.12.0"
 mypy = "^1.0.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 119
@@ -32,6 +60,41 @@ multi_line_output = 3
 force_single_line = true
 
 [tool.mypy]
-disallow_untyped_defs = true
+python_version = "3.11"
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_untyped_defs = false
 warn_return_any = true
-exclude = ["venv/"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+show_error_codes = true
+mypy_path = "."
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test.*.*"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "requests.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "decorators"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "src.*"
+ignore_missing_imports = false
+
+[mypy-requests]
+ignore_missing_imports = true

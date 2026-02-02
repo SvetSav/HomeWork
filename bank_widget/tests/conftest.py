@@ -3,16 +3,14 @@
 """
 import os
 import sys
-
-# Добавляем src в путь Python
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-
 from typing import Any  # noqa: E402
 from typing import Dict  # noqa: E402
 from typing import List  # noqa: E402
 
-import pytest  # noqa: E402
+import pytest
+
+# Добавляем src в путь для импорта
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
 # Фикстуры для masks.py
@@ -101,4 +99,39 @@ def operations_with_invalid_dates() -> List[Dict[str, Any]]:
         {'id': 1, 'state': 'EXECUTED', 'date': 'invalid-date'},
         {'id': 2, 'state': 'EXECUTED', 'date': ''},
         {'id': 3, 'state': 'EXECUTED', 'date': '2024-13-01T00:00:00.000000'},
+    ]
+
+
+@pytest.fixture
+def sample_transactions() -> List[Dict[str, Any]]:
+    """Тестовые транзакции для модуля generators."""
+    return [
+        {
+            "id": 939719570,
+            "state": "EXECUTED",
+            "date": "2018-06-30T02:08:58.425572",
+            "operationAmount": {
+                "amount": "9824.07",
+                "currency": {"name": "USD", "code": "USD"}
+            },
+            "description": "Перевод организации",
+            "from": "Счет 75106830613657916952",
+            "to": "Счет 11776614605963066702"
+        },
+    ]
+
+
+@pytest.fixture
+def empty_transactions():
+    """Фикстура с пустым списком транзакций."""
+    return []
+
+
+@pytest.fixture
+def invalid_transactions():
+    """Фикстура с некорректными транзакциями."""
+    return [
+        {'id': 1},  # Только ID
+        {'description': 'Test'},  # Только описание
+        {},  # Пустой словарь
     ]

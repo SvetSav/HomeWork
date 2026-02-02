@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "date": "2024-01-01",
+    "state": "EXECUTED",
+    "amount": 1000,
+    "currency": "RUB"
+  },
+  {
+    "id": 2,
+    "date": "2024-01-02",
+    "state": "CANCELED",
+    "amount": 500,
+    "currency": "USD"
+  },
+  {
+    "id": 3,
+    "date": "2024-01-03",
+    "state": "EXECUTED",
+    "amount": 1500,
+    "currency": "RUB"
+  }
+]

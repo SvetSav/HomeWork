@@ -16,6 +16,19 @@
 - **Фильтрация:** по статусу (EXECUTED, CANCELED)
 - **Сортировка:** по дате
 
+4. Чтение данных из различных форматов:
+- **JSON** - базовый формат
+- **CSV** - поддержка различных кодировок (UTF-8, CP1251)
+- **Excel** - поддержка .xlsx и .xls файлов
+- 
+5. Поиск транзакций по описанию
+Функция `search_transactions_by_description()` использует регулярные выражения 
+для поиска транзакций по строке в описании (без учета регистра).
+
+Подсчет транзакций по категориям
+Функция `count_transactions_by_category()` использует `Counter` из `collections`
+для подсчета количества транзакций по заданным категориям.
+
 # Установка:
 
 1. Клонируйте репозиторий:
@@ -48,6 +61,100 @@ account = "Счет 73654108430135874305"
 date_str = "2024-03-11T02:26:18.671407"
 #### Результат: 11.03.2024
 
+Запустите программу: `python -m src.main`
+Интерактивное меню позволяет:
+- Загружать данные из JSON, CSV или Excel файлов
+- Фильтровать по статусу операции
+- Сортировать по дате
+- Фильтровать по валюте
+- Искать по описанию
+- Просматривать статистику
+
+# Модуль generators
+
+Модуль содержит генераторы для работы с банковскими транзакциями.
+
+## Функции
+
+### `filter_by_currency(transactions, currency)`
+Фильтрует транзакции по заданной валюте.
+
+from src.generators import filter_by_currency
+
+usd_transactions = filter_by_currency(transactions, "USD")
+for transaction in usd_transactions:
+    print(transaction["id"], transaction["operationAmount"]["amount"])
+
+### `transaction_descriptions(transactions)`
+Возвращает описания транзакций.
+
+from src.generators import transaction_descriptions
+
+descriptions = transaction_descriptions(transactions)
+for description in descriptions:
+    print(description)
+
+### `card_number_generator(start, end)`
+Генерирует номера банковских карт в заданном диапазоне.
+
+from src.generators import card_number_generator
+
+for card_number in card_number_generator(1, 5):
+    print(card_number)
+#### Вывод:
+#### 0000 0000 0000 0001
+#### 0000 0000 0000 0002
+#### 0000 0000 0000 0003
+#### 0000 0000 0000 0004
+#### 0000 0000 0000 0005
+
+## Модуль decorators
+
+Модуль содержит декораторы для логирования работы функций.
+
+### Декоратор `log`
+
+Декоратор для автоматического логирования вызовов функций.
+
+#### Параметры:
+- `filename` (опционально): Имя файла для записи логов. Если не указан, логи выводятся в консоль.
+
+#### Примеры использования:
+
+##### Логирование в консоль:
+
+from src.decorators import log
+
+@log()
+def add(a, b):
+    return a + b
+
+result = add(2, 3)
+### В консоль будет выведено: "2023-12-01 10:30:00 - add ok"
+
+## Логирование в файл:
+
+from src.decorators import log
+
+@log(filename="operations.log")
+def divide(a, b):
+    return a / b
+
+try:
+    result = divide(10, 2)  # Запишет в файл: "2023-12-01 10:30:00 - divide ok"
+    result = divide(10, 0)  # Запишет в файл: "2023-12-01 10:30:01 - divide error: ZeroDivisionError. Inputs: (10, 0)"
+except ZeroDivisionError:
+    pass
+
+## Логирование с ключевыми аргументами:
+
+@log()
+def greet(name, greeting="Hello"):
+    return f"{greeting}, {name}!"
+
+result = greet("Alice", greeting="Hi")
+### В консоль будет выведено: "2023-12-01 10:30:00 - greet ok"
+
 # Тестирование
 
 ## Запустите все тесты!
@@ -62,6 +169,15 @@ python -m pytest tests/test_processing.py -v
 
 ### Тесты для основного виджета
 python -m pytest tests/test_widget.py -v
+
+### Тесты для generators
+pytest tests/test_generators.py -v
+
+# Проверьте покрытие
+pytest --cov=src tests/ --cov-report=html
+
+Откройте отчет о покрытии
+start htmlcov/index.html
 
 # Особенности тестирования
 * Параметризация тестов - множественные тест-кейсы в одном тесте
